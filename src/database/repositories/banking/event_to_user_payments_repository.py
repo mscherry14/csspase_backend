@@ -20,7 +20,6 @@ class EventToUserPaymentsRepository:
     def get_collection(self) -> AsyncIOMotorCollection:
         return self.db[COLLECTION]
 
-    # TODO: FINISH
     async def create_payment(self, payment: EventToUserPaymentDB) -> SimpleResult[EventToUserPaymentDB]:
         """
         Порядок создания нового money transfer (возможно это делает скорее сервис, но и на уровне бд
