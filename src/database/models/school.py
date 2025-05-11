@@ -1,11 +1,12 @@
 from typing import Optional, List
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
-from pydantic_mongo import PydanticObjectId
+
+from .utils import PyObjectId
 
 
 class SchoolDB(BaseModel):
-    id: Optional[PydanticObjectId] = Field(alias="_id")
+    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
     schoolId: str  # unique: true,
     title: str
     shortDescription: str

@@ -22,7 +22,7 @@ class WalletService:
            если аккаунта нет
         """
         res = await UsersRepository(db=self.db).get_by_user_id(user_id=user_id)
-        if res is SimpleErrorResult:
+        if isinstance(res, SimpleErrorResult):
             return SimpleErrorResult(message=res.message)
         else:
             try:
@@ -39,7 +39,7 @@ class WalletService:
             2.1 если аккаунта нет, создаем нулевой(?) (_create_user_bank_account)
         """
         res = await UsersRepository(db=self.db).get_by_user_id(user_id=user_id)
-        if res is SimpleErrorResult:
+        if isinstance(res, SimpleErrorResult):
             return SimpleErrorResult(message=res.message)
         else:
             try:
@@ -55,7 +55,7 @@ class WalletService:
         3. возвращаем баланс
         """
         res = await self._find_account(user_id=user_id)
-        if res is SimpleErrorResult:
+        if isinstance(res, SimpleErrorResult):
             return SimpleErrorResult(message=res.message)
         return SimpleOkResult(payload=res.payload.balance)
 
@@ -67,6 +67,6 @@ class WalletService:
         3. возвращаем историю транзакций
         """
         res = await self._find_account(user_id=user_id)
-        if res is SimpleErrorResult:
+        if isinstance(res, SimpleErrorResult):
             return SimpleErrorResult(message=res.message)
         return SimpleOkResult(payload=res.payload.transactions)

@@ -85,6 +85,16 @@ class ShopPaymentsRepository:
         except Exception as e:
             return SimpleErrorResult(message="Payments parsing error: " + str(e))
 
+    async def get_by_id(self, object_id: PyObjectId) -> SimpleResult[ShopPaymentDB]:
+        try:
+            object_id = ObjectId(object_id)
+            doc = await self.get_collection().find_one({"_id": object_id})
+            if not doc:
+                return SimpleErrorResult(f"Document with id={object_id} not found")
+            return SimpleOkResult(payload=ShopPaymentDB(**doc))
+        except Exception as e:
+            return SimpleErrorResult(str(e))
+
     async def change_payment_status(self, payment_id: PyObjectId, status: TransferStatus) -> SimpleResult[
         ShopPaymentDB]:
         if status == TransferStatus.processing:

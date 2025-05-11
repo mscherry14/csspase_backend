@@ -9,7 +9,7 @@ from ..utils import PyObjectId
 
 class OrderStatus(str, Enum):
     created = "created"
-    payed = "payed"
+    paid = "paid"
     confirmed = "confirmed"
     canceled = "canceled"
     # waiting = "waiting"

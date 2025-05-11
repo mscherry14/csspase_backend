@@ -63,7 +63,7 @@ class EventBankingAccountsRepository:
 
     async def form_transaction_without_write(self, transaction: TransactionDB, account_id: str) -> SimpleResult[EventBankingAccountDB]:
         result = await self.get_account_by_account_id(account_id)
-        if result is SimpleOkResult[EventBankingAccountDB]:
+        if isinstance(result, SimpleOkResult):
             account = result.payload
             if transaction.type == TransactionType.withdraw:
                 if transaction.amount > account.balance:
