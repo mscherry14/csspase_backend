@@ -3,7 +3,7 @@ from typing import List
 
 from bson import ObjectId
 from bson.errors import InvalidId
-from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorCollection
+from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorCollection, AsyncIOMotorClientSession
 
 from ...models import PyObjectId
 from ...models.banking.utils import TransferStatus
@@ -20,7 +20,7 @@ class EventToUserPaymentsRepository:
     def get_collection(self) -> AsyncIOMotorCollection:
         return self.db[COLLECTION]
 
-    async def create_payment(self, payment: EventToUserPaymentDB) -> SimpleResult[EventToUserPaymentDB]:
+    async def create_payment(self, payment: EventToUserPaymentDB, session: AsyncIOMotorClientSession | None) -> SimpleResult[EventToUserPaymentDB]:
         """
         Порядок создания нового money transfer (возможно это делает скорее сервис, но и на уровне бд
         будем пытаться поддерживать на всякий:
@@ -30,13 +30,13 @@ class EventToUserPaymentsRepository:
         3. возможно еще проверяем штуку "не начисляй одному и тому же, если полминуты не прошло"
         """
         unfinished_payment = await self.get_collection().find_one(
-            {"fromEventBankingAccount": payment.fromEventBankingAccount, "status": TransferStatus.processing})
+            {"fromEventBankingAccount": payment.fromEventBankingAccount, "status": TransferStatus.processing}, session=session)
         if not unfinished_payment:
             payment.id = None
             payment.status = TransferStatus.processing
             payment.created_at = payment.updated_at = datetime.now(tz=timezone.utc)
             try:
-                result = await self.get_collection().insert_one(payment.model_dump())
+                result = await self.get_collection().insert_one(payment.model_dump(), session=session)
                 if result.acknowledged:
                     payment.id = result.inserted_id
                     return SimpleOkResult(payload=payment)
@@ -49,7 +49,7 @@ class EventToUserPaymentsRepository:
                 message=f"Cannot create payment: {EventToUserPaymentDB(**unfinished_payment)} in process")
 
     async def get_payments_by_filter(self, from_event_id: str | None, to_user_id: str | None,
-                                     status: TransferStatus | None) -> SimpleResult[List[EventToUserPaymentDB]]:
+                                     status: TransferStatus | None, session: AsyncIOMotorClientSession | None) -> SimpleResult[List[EventToUserPaymentDB]]:
         filter_opt = dict()
         if from_event_id:
             filter_opt["fromEventBankingAccount"] = from_event_id
@@ -57,7 +57,7 @@ class EventToUserPaymentsRepository:
             filter_opt["toUserBankingAccount"] = to_user_id
         if status:
             filter_opt["status"] = status
-        cursor = self.get_collection().find(filter_opt)
+        cursor = self.get_collection().find(filter_opt, session=session)
         try:
             payments = [EventToUserPaymentDB(**doc) async for doc in cursor]
             return SimpleOkResult(payload=payments)
@@ -65,7 +65,7 @@ class EventToUserPaymentsRepository:
             return SimpleErrorResult(message="Payments parsing error: " + str(e))
 
     async def get_one_payment_by_filter(self, from_event_id: str | None, to_user_id: str | None,
-                                        status: TransferStatus | None) -> SimpleResult[EventToUserPaymentDB]:
+                                        status: TransferStatus | None, session: AsyncIOMotorClientSession | None) -> SimpleResult[EventToUserPaymentDB]:
         filter_opt = dict()
         if from_event_id:
             filter_opt["fromEventBankingAccount"] = from_event_id
@@ -73,13 +73,13 @@ class EventToUserPaymentsRepository:
             filter_opt["toUserBankingAccount"] = to_user_id
         if status:
             filter_opt["status"] = status
-        payment = await self.get_collection().find_one(filter_opt)
+        payment = await self.get_collection().find_one(filter_opt, session=session)
         try:
             return SimpleOkResult(payload=EventToUserPaymentDB(**payment))
         except Exception as e:
             return SimpleErrorResult(message="Payments parsing error: " + str(e))
 
-    async def change_payment_status(self, payment_id: PyObjectId, status: TransferStatus) -> SimpleResult[
+    async def change_payment_status(self, payment_id: PyObjectId, status: TransferStatus, session: AsyncIOMotorClientSession | None) -> SimpleResult[
         EventToUserPaymentDB]:
         if status == TransferStatus.processing:
             return SimpleErrorResult(message="You can't set processing payment status")
@@ -87,14 +87,14 @@ class EventToUserPaymentsRepository:
             obj_id = ObjectId(payment_id)
         except InvalidId:
             return SimpleErrorResult(message="Invalid payment id")
-        doc = await self.get_collection().find_one({"_id": obj_id})
+        doc = await self.get_collection().find_one({"_id": obj_id}, session=session)
         if not doc:
             return SimpleErrorResult(message="Payment not found")
         else:
             payment = EventToUserPaymentDB(**doc)
             if payment.status == TransferStatus.processing:
                 res = await self.get_collection().update_one(filter={"_id": obj_id},
-                                                             update={"$set": {"status": status}})
+                                                             update={"$set": {"status": status}}, session=session)
                 if res.acknowledged:
                     return SimpleOkResult(payload=payment)
                 else:

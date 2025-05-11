@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, Type, List, Optional
 
 from motor.core import AgnosticClientSession
-from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorCollection
+from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorCollection, AsyncIOMotorClientSession
 from bson import ObjectId
 
 from pydantic import BaseModel
@@ -21,7 +21,7 @@ class AsyncRepository(Generic[ModelType], ABC):
     def collection(self) -> AsyncIOMotorCollection:
         return self._db[self._collection_name]
 
-    async def insert(self, obj: ModelType, session: Optional[AgnosticClientSession] = None) -> SimpleResult[ModelType]:
+    async def insert(self, obj: ModelType, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[ModelType]:
         try:
             data = obj.model_dump(by_alias=True)
             result = await self.collection().insert_one(data, session=session)
@@ -32,24 +32,24 @@ class AsyncRepository(Generic[ModelType], ABC):
         except Exception as e:
             return SimpleErrorResult(str(e))
 
-    async def get_by_id(self, object_id: ObjectId) -> SimpleResult[ModelType]:
+    async def get_by_id(self, object_id: ObjectId, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[ModelType]:
         try:
-            doc = await self.collection().find_one({"_id": object_id})
+            doc = await self.collection().find_one({"_id": object_id}, session=session)
             if not doc:
                 return SimpleErrorResult(f"Document with id={object_id} not found")
             return SimpleOkResult(payload=self._model(**doc))
         except Exception as e:
             return SimpleErrorResult(str(e))
 
-    async def find_all(self, filter_options: dict = dict()) -> SimpleResult[List[ModelType]]:
+    async def find_all(self, filter_options: dict = dict(), session: AsyncIOMotorClientSession | None = None) -> SimpleResult[List[ModelType]]:
         try:
-            cursor = self.collection().find(filter_options)
+            cursor = self.collection().find(filter_options, session=session)
             items = [self._model(**doc) async for doc in cursor]
             return SimpleOkResult(payload=items)
         except Exception as e:
             return SimpleErrorResult(str(e))
 
-    async def replace(self, object_id: ObjectId, obj: ModelType, session: Optional[AgnosticClientSession] = None) -> SimpleResult[bool]:
+    async def replace(self, object_id: ObjectId, obj: ModelType, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[bool]:
         try:
             data = obj.model_dump(by_alias=True)
             result = await self.collection().replace_one({"_id": object_id}, data, session=session)
@@ -59,7 +59,7 @@ class AsyncRepository(Generic[ModelType], ABC):
         except Exception as e:
             return SimpleErrorResult(str(e))
 
-    async def update_one(self, obj: ModelType, session: Optional[AgnosticClientSession] = None, upsert: bool = False) -> SimpleResult[bool]:
+    async def update_one(self, obj: ModelType, session: AsyncIOMotorClientSession | None = None, upsert: bool = False) -> SimpleResult[bool]:
         try:
             obj_id = ObjectId(obj.id)
             new_obj = obj.model_copy(update={"_id": None})

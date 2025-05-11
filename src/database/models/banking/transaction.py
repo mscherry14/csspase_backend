@@ -14,7 +14,7 @@ class TransactionDB(BaseModel):
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
     amount: int
     type: TransactionType
-    operation_id: str # to str mongodb id
+    operation_id: str # it is shop payment/event-to-user payment objectid to string???
     created_at: Optional[datetime] = None
 
     @model_validator(mode='before')

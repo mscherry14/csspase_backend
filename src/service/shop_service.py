@@ -2,6 +2,7 @@ from typing import List
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from .money_transfer_service import MoneyTransferService
 from .orders_service import OrdersService
 from ..database.models.banking.shop_payment import ShopPaymentDB
 from ..database.models.banking.utils import TransferStatus
@@ -52,61 +53,79 @@ class ShopService:
            (возможно внутри money transfer)
         9. меняем статус order в соответствие с результатом (и добавляем payment, если не раньше)
         """
-        # step 1 product
-        res = await ProductsRepository(db=self.db).product_by_product_id(product_id=product_id)
-        if isinstance(res, SimpleErrorResult):
-            return SimpleErrorResult(message='Products doesnt exist')
-        product = res.payload
-        # step 2 user
-        res = await UsersRepository(db=self.db).get_by_user_id(user_id=user_id)
-        if isinstance(res, SimpleErrorResult):
-            return SimpleErrorResult(message='User doesnt exist')
-        # step 3 ?
-        # step 3.0 get user banking account
-        res = await UserBankingAccountsRepository(db=self.db).get_account_by_user_id(user_id=user_id)
-        if isinstance(res, SimpleErrorResult):
-            return SimpleErrorResult(message='User banking account error: ' + res.message)
-        user_banking_account_id = res.payload.accountId
-        # step 4 create order
-        res = await OrdersService(db=self.db).create_order(product=product, user_id=user_id)
-        if isinstance(res, SimpleErrorResult):
-            return SimpleErrorResult(message=res.message)
-        order = res.payload
-        # step 5 shop payment
-        shop_payment = ShopPaymentDB(
-            fromUserBankingAccount=user_banking_account_id,
-            # USE ACCOUNT ID instead of using tg_id (one user = one account)
-            amount=product.price,
-            orderId=order.orderId,
-            status=TransferStatus.processing,
-        )
-        # step 6 push shop payment
-        res = await ShopPaymentsRepository(db=self.db).create_payment(payment=shop_payment)
-        if isinstance(res, SimpleErrorResult):
-            return SimpleErrorResult(message="shop payment creating error:" + res.message)
-        shop_payment = res.payload
+        async with await self.db.client.start_session() as session:
+            try:
+                async with session.start_transaction():
+                    # step 1 product
+                    res = await ProductsRepository(db=self.db).product_by_product_id(product_id=product_id)
+                    if isinstance(res, SimpleErrorResult):
+                        return SimpleErrorResult(message='Products doesnt exist')
+                    product = res.payload
+                    # step 2 user
+                    res = await UsersRepository(db=self.db).get_by_user_id(user_id=user_id)
+                    if isinstance(res, SimpleErrorResult):
+                        return SimpleErrorResult(message='User doesnt exist')
+                    # step 3 ?
+                    # step 3.0 get user banking account
+                    res = await UserBankingAccountsRepository(db=self.db).get_account_by_user_id(user_id=user_id)
+                    if isinstance(res, SimpleErrorResult):
+                        return SimpleErrorResult(message='User banking account error: ' + res.message)
+                    user_banking_account_id = res.payload.accountId
+                    # step 4 create order
+                    res = await OrdersService(db=self.db).create_order(product=product, user_id=user_id)
+                    if isinstance(res, SimpleErrorResult):
+                        return SimpleErrorResult(message=res.message)
+                    order = res.payload
+                    # step 5 shop payment
+                    shop_payment = ShopPaymentDB(
+                        fromUserBankingAccount=user_banking_account_id,
+                        # USE ACCOUNT ID instead of using tg_id (one user = one account)
+                        amount=product.price,
+                        orderId=order.orderId,
+                        status=TransferStatus.processing,
+                    )
+                    # step 6 push shop payment
+                    res = await ShopPaymentsRepository(db=self.db).create_payment(payment=shop_payment)
+                    if isinstance(res, SimpleErrorResult):
+                        return SimpleErrorResult(message="shop payment creating error:" + res.message)
+                    shop_payment = res.payload
 
-        # step 7 money transfer
-        #TODO: implement money transfer
+                    # step 7 money transfer
+                    # TODO: implement money transfer
+                    res = await MoneyTransferService(db=self.db).shop_transfer_money(session=session,
+                                                                               from_acc=shop_payment.fromUserBankingAccount,
+                                                                               to_acc=shop_payment.toShopAccount,
+                                                                               amount=shop_payment.amount,
+                                                                               operation_id=str(shop_payment.id),)
 
-        # step 8 set shop payment status
-        # step 9 set order status
-        if isinstance(res, SimpleErrorResult):
-            inner_res = await ShopPaymentsRepository(db=self.db).change_payment_status(payment_id=shop_payment.payment_id, status=TransferStatus.aborted)
-            if isinstance(inner_res, SimpleErrorResult):
-                raise Exception("critical error: after transaction aborted results may be not saved! Error: " + inner_res.message)
-            inner_res = await OrdersService(db=self.db).order_set_cancelled(order_id=order.orderId)
-            if isinstance(inner_res, SimpleErrorResult):
-                raise Exception("critical error: after transaction aborted results may be not saved! Error: " + inner_res.message)
-            return SimpleErrorResult(message=res.message)
+                    # step 8 set shop payment status
+                    # step 9 set order status
+                    if isinstance(res, SimpleErrorResult):
+                        inner_res = await ShopPaymentsRepository(db=self.db).change_payment_status(
+                            payment_id=shop_payment.payment_id, status=TransferStatus.aborted, session=session)
+                        if isinstance(inner_res, SimpleErrorResult):
+                            raise Exception(
+                                "critical error: after transaction aborted results may be not saved! Error: " + inner_res.message)
+                        inner_res = await OrdersService(db=self.db).order_set_cancelled(order_id=order.orderId, session=session)
+                        if isinstance(inner_res, SimpleErrorResult):
+                            raise Exception(
+                                "critical error: after transaction aborted results may be not saved! Error: " + inner_res.message)
+                        return SimpleErrorResult(message=res.message)
 
-        inner_res = await ShopPaymentsRepository(db=self.db).change_payment_status(payment_id=shop_payment.payment_id,
-                                                                                   status=TransferStatus.completed)
-        if isinstance(inner_res, SimpleErrorResult):
-            raise Exception(
-                "critical error: after transaction succeed results may be not saved! Error: " + inner_res.message)
-        inner_res = await OrdersService(db=self.db).add_payment(order_id=order.orderId, payment_id=shop_payment.payment_id)
-        if isinstance(inner_res, SimpleErrorResult):
-            raise Exception(
-                "critical error: after transaction succeed results may be not saved! Error: " + inner_res.message)
+                    inner_res = await ShopPaymentsRepository(db=self.db).change_payment_status(
+                        payment_id=shop_payment.payment_id,
+                        status=TransferStatus.completed, session=session)
+                    if isinstance(inner_res, SimpleErrorResult):
+                        raise Exception(
+                            "critical error: after transaction succeed results may be not saved! Error: " + inner_res.message)
+                    inner_res = await OrdersService(db=self.db).add_payment(order_id=order.orderId,
+                                                                            payment_id=shop_payment.payment_id, session=session)
+                    if isinstance(inner_res, SimpleErrorResult):
+                        raise Exception(
+                            "critical error: after transaction succeed results may be not saved! Error: " + inner_res.message)
+
+                    # если всё ок → commit
+            except Exception as e:
+                return SimpleErrorResult(message=str("Transaction failed: " + str(e)))
+
         return SimpleOkResult(payload=inner_res.payload)

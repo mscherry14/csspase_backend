@@ -1,4 +1,4 @@
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorClientSession
 
 from .async_base_repository import AsyncRepository
 from ..models.user import UserDB
@@ -9,9 +9,9 @@ class UsersRepository(AsyncRepository[UserDB]):
     def __init__(self, db: AsyncIOMotorDatabase):
         super().__init__(db, UserDB, "users")
 
-    async def get_by_user_id(self, user_id: int) -> SimpleResult[UserDB]:
+    async def get_by_user_id(self, user_id: int, session: AsyncIOMotorClientSession | None) -> SimpleResult[UserDB]:
         try:
-            doc = await self.collection().find_one({"tg_id": user_id})
+            doc = await self.collection().find_one({"tg_id": user_id}, session=session)
             if not doc:
                 return SimpleErrorResult(message=f"Document for user {user_id} not found")
             return SimpleOkResult(payload=UserDB(**doc))
