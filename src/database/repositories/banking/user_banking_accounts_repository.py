@@ -42,7 +42,10 @@ class UserBankingAccountsRepository:
     async def get_account_by_user_id(self, user_id: int) -> SimpleResult[UserBankingAccountDB]:
         user_doc = await self.get_collection().find_one({"owner": user_id})
         if not user_doc:
-            raise NotFoundException()
+            res = await self.create_account(user_id=user_id)
+            if isinstance(res, SimpleErrorResult):
+                return SimpleErrorResult(message="no acc found, trying to create with error: "+ res.message)
+            return SimpleOkResult(payload=res.payload)
         else:
             try:
                 account = UserBankingAccountDB(**user_doc)

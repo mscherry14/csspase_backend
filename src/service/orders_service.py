@@ -30,7 +30,7 @@ class OrdersService:
 
     async def get_orders(self) -> SimpleResult[List[OrderDB]]:
         """
-        просто достать из базы товары
+        просто достать из базы заказы
         """
         res = await OrdersRepository(self.db).find_all()
         return res
@@ -56,6 +56,11 @@ class OrdersService:
     async def add_payment(self, order_id: str, payment_id: PyObjectId) -> SimpleResult[OrderDB]:
         """
         обязательный цикл заказа: мы его создаем, потом платим, потом добавляем оплату
+            !!!или не потом, а как создаем оплату, добавляем, и поддерживаем консистентность:
+            - без оплаты created или cancelled
+            - c process оплатой created
+            - c rejected оплатой cancelled!!!
+
         или отменяем по причине неоплаты
         привязываем исключительно успешные оплаты именно этого заказа!!
         здесь мы проверяем, что заказ есть и у него статус created, тогда добавляем оплату

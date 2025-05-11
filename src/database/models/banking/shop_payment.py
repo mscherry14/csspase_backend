@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Literal
 from pydantic import BaseModel, Field, model_validator, ConfigDict
 
 from ..utils import PyObjectId
@@ -8,10 +8,10 @@ from .utils import TransferStatus
 class ShopPaymentDB(BaseModel):
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
     fromUserBankingAccount: str # USE ACCOUNT ID instead of using tg_id (one user = one account)
-    toShopAccount: str = Field("cs_space_banking_account", const=True)
+    toShopAccount: Literal["cs_space_banking_account"] = "cs_space_banking_account"
     amount: int
     orderId: str
-    status: TransferStatus
+    status: TransferStatus = Field(TransferStatus.processing)
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
