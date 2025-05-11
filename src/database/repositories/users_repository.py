@@ -1,23 +1,19 @@
-from pydantic_mongo import AsyncAbstractRepository
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
+from .async_base_repository import AsyncRepository
 from ..models.user import UserDB
+from ...utils.simple_result import SimpleErrorResult, SimpleResult, SimpleOkResult
 
-class UsersRepository(AsyncAbstractRepository[UserDB]):
-    class Meta:
-        collection_name = "users"
 
-"""
-AsyncAbstractRepository[T]
-async delete
-async delete_by_id
-async find_by
-async find_by_with_output_type
-async find_one_by
-async find_one_by_id
-get_collection()
-async paginate
-async paginate_with_output_type
-async save
-async save_many
+class UsersRepository(AsyncRepository[UserDB]):
+    def __init__(self, db: AsyncIOMotorDatabase):
+        super().__init__(db, UserDB, "users")
 
-see docs in https://pydantic-mongo.readthedocs.io/en/latest/api/async_abstract_repository.html
-"""
+    async def get_by_user_id(self, user_id: int) -> SimpleResult[UserDB]:
+        try:
+            doc = await self.collection().find_one({"tg_id": user_id})
+            if not doc:
+                return SimpleErrorResult(message=f"Document for user {user_id} not found")
+            return SimpleOkResult(payload=UserDB(**doc))
+        except Exception as e:
+            return SimpleErrorResult(message=f"Error retrieving user {user_id}: {str(e)}")

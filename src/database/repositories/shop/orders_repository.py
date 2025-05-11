@@ -1,8 +1,10 @@
-from pydantic_mongo import AsyncAbstractRepository
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from ...models.shop.product import ProductDB
+from ..async_base_repository import AsyncRepository
+from ...models.shop.order import OrderDB
+from ....utils.simple_result import SimpleErrorResult, SimpleResult, SimpleOkResult
 
 
-class OrdersRepository(AsyncAbstractRepository[ProductDB]):
-    class Meta:
-        collection_name = "orders"
+class OrdersRepository(AsyncRepository[OrderDB]):
+    def __init__(self, db: AsyncIOMotorDatabase):
+        super().__init__(db, OrderDB, "orders")

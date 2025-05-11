@@ -2,13 +2,14 @@ from motor.core import AgnosticClientSession
 from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorCollection
 from datetime import datetime, timezone
 
+from ....utils.exceptions import NotFoundException
 from ....utils.simple_result import SimpleOkResult, SimpleErrorResult, SimpleResult
 from ...models.banking.user_banking_account import UserBankingAccountDB
 from ...models.banking.transaction import TransactionDB, TransactionType
 
 COLLECTION = "userBankingAccounts"
 
-class EventBankingAccountsRepository:
+class UserBankingAccountsRepository:
     def __init__(self, db: AsyncIOMotorDatabase):
         self.db = db
 
@@ -38,10 +39,10 @@ class EventBankingAccountsRepository:
         else:
             return SimpleErrorResult(message=f"Event account for {user_id} already exists")
 
-    async def get_account_by_user_id(self, user_id: str) -> SimpleResult[UserBankingAccountDB]:
-        user_doc = await self.get_collection().find_one({"event": user_id})
+    async def get_account_by_user_id(self, user_id: int) -> SimpleResult[UserBankingAccountDB]:
+        user_doc = await self.get_collection().find_one({"owner": user_id})
         if not user_doc:
-            return SimpleErrorResult(message=f"Event account for {user_id} not found")
+            raise NotFoundException()
         else:
             try:
                 account = UserBankingAccountDB(**user_doc)

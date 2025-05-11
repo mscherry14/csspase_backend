@@ -1,23 +1,10 @@
-from pydantic_mongo import AsyncAbstractRepository
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
+from .async_base_repository import AsyncRepository
 from ..models.school import SchoolDB
+from ...utils.simple_result import SimpleErrorResult, SimpleResult, SimpleOkResult
 
-class SchoolsRepository(AsyncAbstractRepository[SchoolDB]):
-    class Meta:
-        collection_name = "schools"
 
-"""
-AsyncAbstractRepository[T]
-async delete
-async delete_by_id
-async find_by
-async find_by_with_output_type
-async find_one_by
-async find_one_by_id
-get_collection()
-async paginate
-async paginate_with_output_type
-async save
-async save_many
-
-see docs in https://pydantic-mongo.readthedocs.io/en/latest/api/async_abstract_repository.html
-"""
+class SchoolsRepository(AsyncRepository[SchoolDB]):
+    def __init__(self, db: AsyncIOMotorDatabase):
+        super().__init__(db, SchoolDB, "schools")
