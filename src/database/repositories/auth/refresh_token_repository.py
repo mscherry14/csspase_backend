@@ -13,7 +13,7 @@ class RefreshTokensRepository(AsyncRepository[RefreshTokenDB]):
         try:
             doc = await self.collection().find_one({"userId": user_id}, session=session)
             if not doc:
-                return SimpleErrorResult(f"Document with id={object_id} not found")
+                return SimpleErrorResult(f"Document with id={user_id} not found")
             return SimpleOkResult(payload=self._model(**doc))
         except Exception as e:
             return SimpleErrorResult(str(e))

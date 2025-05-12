@@ -23,7 +23,7 @@ class AsyncRepository(Generic[ModelType], ABC):
 
     async def insert(self, obj: ModelType, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[ModelType]:
         try:
-            data = obj.model_dump(by_alias=True)
+            data = obj.model_dump(by_alias=True, exclude_none=True, exclude_unset=True,)
             result = await self.collection().insert_one(data, session=session)
             if result.acknowledged:
                 obj.id = result.inserted_id

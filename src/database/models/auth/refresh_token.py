@@ -7,7 +7,7 @@ from ..utils import PyObjectId
 
 
 class RefreshTokenDB(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
     user_id: int = Field(..., alias="userId")
     token_hash: str = Field(..., alias="tokenHash")
     expires_at: datetime

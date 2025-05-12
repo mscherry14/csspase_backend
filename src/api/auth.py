@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from src.database.database import db
 from src.database.models import UserDB
+from src.database.repositories.auth.refresh_token_repository import RefreshTokensRepository
 from src.database.repositories.users_repository import UsersRepository
 from src.service.auth.jwt import decode_token, create_access_token, create_refresh_token
 from fastapi.security import OAuth2PasswordBearer
@@ -91,3 +92,9 @@ async def refresh_token(refr_token: str = Depends(oauth2_scheme)):
 @router.get("/me", response_model=UserDB)
 async def read_users_me(current_user: UserDB = Depends(get_current_user)):
     return current_user
+
+@router.get("/me/test")
+async def all_refresh():
+    res = await RefreshTokensRepository(db=db).find_all()
+    print(res.payload[1].model_dump_json())
+    return {}

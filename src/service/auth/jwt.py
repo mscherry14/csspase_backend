@@ -45,17 +45,20 @@ async def create_refresh_token(data: dict):
 
 async def save_refresh_token(user_id: int, refresh_token: str, expire: datetime | None = None):
     try:
-        token_hash = pwd_context.hash(refresh_token)
+        #TODO: do hash =(
+        token_hash = refresh_token #pwd_context.hash(refresh_token)
         # Определяем срок действия
         expires_at = expire or datetime.now(tz=timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-
+        print(expires_at)
         # Создаем запись в базе
         db_token = RefreshTokenDB(
             userId=user_id,
             tokenHash=token_hash,
             expires_at=expires_at,
         )
-        await RefreshTokensRepository(db=db).insert(db_token)
+        print(db_token.model_dump())
+        res = await RefreshTokensRepository(db=db).insert(db_token)
+        print(res)
     except Exception as e:
         pass
 
