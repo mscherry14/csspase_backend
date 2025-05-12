@@ -15,7 +15,7 @@ class Role(str, Enum):
 
 
 class PersonDB(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
     firstName: str
     lastName: str
     bio: str

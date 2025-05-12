@@ -11,7 +11,7 @@ class TransactionType(str, Enum):
     withdraw = "withdraw"
 
 class TransactionDB(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
     amount: int
     type: TransactionType
     operation_id: str # it is shop payment/event-to-user payment objectid to string???

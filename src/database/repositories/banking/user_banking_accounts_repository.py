@@ -17,7 +17,7 @@ class UserBankingAccountsRepository:
     def get_collection(self) -> AsyncIOMotorCollection:
         return self.db[COLLECTION]
 
-    async def create_account(self, user_id: int, session: AsyncIOMotorClientSession | None) -> SimpleResult[UserBankingAccountDB]:
+    async def create_account(self, user_id: int, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[UserBankingAccountDB]:
         user_doc = await self.get_collection().find_one({"owner": user_id}, session=session)
         if not user_doc:
             new_account = UserBankingAccountDB(
@@ -40,7 +40,7 @@ class UserBankingAccountsRepository:
         else:
             return SimpleErrorResult(message=f"Event account for {user_id} already exists")
 
-    async def get_account_by_user_id(self, user_id: int, session: AsyncIOMotorClientSession | None) -> SimpleResult[UserBankingAccountDB]:
+    async def get_account_by_user_id(self, user_id: int, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[UserBankingAccountDB]:
         user_doc = await self.get_collection().find_one({"owner": user_id}, session=session)
         if not user_doc:
             res = await self.create_account(user_id=user_id, session=session)
@@ -54,7 +54,7 @@ class UserBankingAccountsRepository:
             except Exception as e:
                 return SimpleErrorResult(message="Event account parsing error: " + str(e))
 
-    async def get_account_by_account_id(self, account_id: str, session: AsyncIOMotorClientSession | None) -> SimpleResult[UserBankingAccountDB]:
+    async def get_account_by_account_id(self, account_id: str, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[UserBankingAccountDB]:
         user_doc = await self.get_collection().find_one({"accountId": account_id}, session=session)
         if not user_doc:
             return SimpleErrorResult(message=f"Event account for {account_id} not found")

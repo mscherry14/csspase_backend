@@ -6,7 +6,7 @@ from .utils import PyObjectId
 
 
 class SchoolDB(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
     schoolId: str  # unique: true,
     title: str
     shortDescription: str

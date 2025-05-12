@@ -4,7 +4,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import ValidationError
 from starlette.responses import JSONResponse
 
-from src.api.auth import router
+from add_fake_users import add_fake_users
+from src.api.auth import router as auth_router
+from src.api.user import router as user_router
 from src.database.database import db
 from src.database.models import PersonDB
 from src.database.repositories.people_repository import PeopleRepository
@@ -12,11 +14,13 @@ from src.utils.simple_result import SimpleOkResult
 
 app = FastAPI()
 
-app.include_router(router)
+app.include_router(auth_router)
+app.include_router(user_router)
 @app.get("/")
 async def read_root():
     repo = PeopleRepository(db=db)
     try:
+        await add_fake_users()
         print(await get_all_persons(repo))
         print('success')
         return JSONResponse(status_code=200, content={})

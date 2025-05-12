@@ -6,7 +6,7 @@ from .utils import PyObjectId
 
 
 class CompetitionDB(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
     competitionId: str  # unique
     title: str
     shortDescription: str

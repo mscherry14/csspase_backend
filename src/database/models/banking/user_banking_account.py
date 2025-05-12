@@ -8,7 +8,7 @@ from .transaction import TransactionDB
 
 
 class UserBankingAccountDB(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
     accountId: str
     balance: int
     owner: int

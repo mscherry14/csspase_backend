@@ -1,3 +1,6 @@
+from enum import Enum
+
+from dotenv.variables import Literal
 from pydantic import BaseModel, EmailStr, StringConstraints, Field, ConfigDict
 from typing import Optional, List, Annotated
 
@@ -10,9 +13,13 @@ PhoneStr = Annotated[
     )
 ]
 
+class UserRoles(str, Enum):
+    USER = "user"
+    TEACHER = "teacher"
+    ADMIN = "admin"
 
 class UserDB(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
     tg_id: int
     mail: EmailStr
     name: str
@@ -20,7 +27,8 @@ class UserDB(BaseModel):
     position: str
     username: str
     workplace: str
-    registered_lectures: List[str]
+    roles: List[UserRoles] = Field(default_factory=lambda: [UserRoles.USER])
+    registered_lectures: List[str] = Field(default_factory=list)
 
     model_config = ConfigDict(
         populate_by_name=True,

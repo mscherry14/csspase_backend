@@ -14,7 +14,7 @@ class EventType(str, Enum):
     school = "school"
 
 class EventModel(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
     eventId: str
     title: str
     type: EventType

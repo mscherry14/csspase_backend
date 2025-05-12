@@ -1,19 +1,29 @@
-from fastapi import HTTPException, Depends, status, APIRouter
+from typing import List
+
+from fastapi import HTTPException, Depends, status, APIRouter, Body
 from jose import JWTError
 from pydantic import BaseModel
 
+from src.api.schemas.telegram_auth_schema import TelegramAuthSchema
 from src.database.database import db
-from src.database.models import UserDB
-from src.database.repositories.auth.refresh_token_repository import RefreshTokensRepository
+from src.database.models import UserDB, Role, UserRoles
 from src.database.repositories.users_repository import UsersRepository
 from src.service.auth.jwt import decode_token, create_access_token, create_refresh_token
 from fastapi.security import OAuth2PasswordBearer
 
+from src.service.auth.telegram_auth import check_webapp_signature, get_user_id
 from src.utils.simple_result import SimpleErrorResult
 
-router = APIRouter(prefix="/auth")#, dependencies=[Depends(AuthService.check_teacher_role)])
+router = APIRouter(prefix="/auth")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="tg_login")
+
+credentials_exception = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"},
+)
+
 
 class Token(BaseModel):
     access_token: str
@@ -22,37 +32,36 @@ class Token(BaseModel):
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserDB:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
     try:
         payload = decode_token(token)
-        username: int = int(payload.get("sub")) #TODO: get real cred
+        if not payload:
+            raise credentials_exception
+        username: int = int(payload.get("sub"))  # TODO: get real cred
         if username is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
 
-    user = await UsersRepository(db=db).get_by_user_id(user_id=username) # Ваша функция получения пользователя
+    user = await UsersRepository(db=db).get_by_user_id(user_id=username)
     if (user is None) or isinstance(user, SimpleErrorResult):
         raise credentials_exception
     return user.payload
 
-@router.get("/me/id", response_model=int)
-async def read_me(current_user: UserDB = Depends(get_current_user)):
-    return current_user.tg_id
 
+async def get_tokens(user: UserDB) -> Token:
+    # data for token
+    data = {
+        "sub": str(user.tg_id),
+        "tg_id": user.tg_id,
+        "roles": user.roles
+    }
 
-@router.post("/token", response_model=Token)
-async def login():
+    # token creating
     access_token = create_access_token(
-        data={"sub": "123456789"},
+        data=data,  # TODO: telegram auth
     )
     ref_token = await create_refresh_token(
-        data={"sub": "123456789"},
+        data=data,  # TODO: telegram auth
     )
     return Token(
         access_token=access_token,
@@ -60,40 +69,49 @@ async def login():
     )
 
 
+@router.post("/tg_login", response_model=Token)
+async def telegram_login(payload: TelegramAuthSchema = Body()):
+    # verify user
+    if not check_webapp_signature(payload.init_data):
+        raise credentials_exception
+    # get user
+    user_id = get_user_id(payload.init_data)
+    user = await UsersRepository(db=db).get_by_user_id(user_id=user_id)
+    if (user is None) or isinstance(user, SimpleErrorResult):
+        raise credentials_exception
+    return get_tokens(user.payload)
+
+
 @router.post("/refresh", response_model=Token)
-async def refresh_token(refr_token: str = Depends(oauth2_scheme)):
-    payload = decode_token(refr_token)
+async def refresh_token(refresh: str = Depends(oauth2_scheme)):
+    payload = decode_token(refresh)
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token"
         )
+    user = await get_current_user(refresh)
+    return get_tokens(user.payload)
 
-    username = payload.get("sub")
-    if int(username) != 123456789:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found"
-        )
-
-    new_access_token = create_access_token(
-        data={"sub": 123456789,}
-    )
-    new_refresh_token = await create_refresh_token(
-        data={"sub": 123456789, }
-    )
-
-    return Token(
-        access_token=new_access_token,
-        refresh_token=new_refresh_token
-    )
 
 @router.get("/me", response_model=UserDB)
-async def read_users_me(current_user: UserDB = Depends(get_current_user)):
+async def get_my_user_info(current_user: UserDB = Depends(get_current_user)):
     return current_user
 
-@router.get("/me/test")
-async def all_refresh():
-    res = await RefreshTokensRepository(db=db).find_all()
-    print(res.payload[1].model_dump_json())
-    return {}
+
+@router.get("/me/id", response_model=int)
+async def get_current_user_tg_id(current_user: UserDB = Depends(get_current_user)):
+    return current_user.tg_id
+
+
+@router.get("/me/roles", response_model=List[UserRoles])
+async def get_my_roles(current_user: UserDB = Depends(get_current_user)):
+    return current_user.roles
+
+def role_checker(role: UserRoles, current_user: UserDB = Depends(get_current_user)):
+    if role not in current_user.roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to perform this action: role " + role + " needed"
+        )
+    return None

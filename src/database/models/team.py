@@ -5,7 +5,7 @@ from .utils import PyObjectId
 
 
 class TeamDB(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
     name: str
     members: List[str]  # List of user tg_ids
     captain_tg_id: int

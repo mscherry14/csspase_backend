@@ -17,7 +17,7 @@ class OrderStatus(str, Enum):
 
 
 class OrderDB(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
     orderId: str
     recipientId: int  # tg_id
     productId: str  # reference to product id. can be dirty bc of product deleting

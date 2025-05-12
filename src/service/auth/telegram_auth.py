@@ -1,17 +1,18 @@
 import hashlib
 import hmac
 import json
+import os
 from operator import itemgetter
 from urllib.parse import parse_qsl, parse_qs, unquote
 
+TOKEN : str = os.getenv("TELEGRAM_TOKEN", "")
 
-def check_webapp_signature(token: str, init_data: str) -> bool:
+def check_webapp_signature(init_data: str) -> bool:
     """
     Check incoming WebApp init data signature
 
     Source: https://core.telegram.org/bots/webapps#validating-data-received-via-the-web-app
 
-    :param token:
     :param init_data:
     :return:
     """
@@ -29,7 +30,7 @@ def check_webapp_signature(token: str, init_data: str) -> bool:
         f"{k}={v}" for k, v in sorted(parsed_data.items(), key=itemgetter(0))
     )
     secret_key = hmac.new(
-        key=b"WebAppData", msg=token.encode(), digestmod=hashlib.sha256
+        key=b"WebAppData", msg=TOKEN.encode(), digestmod=hashlib.sha256
     )
     calculated_hash = hmac.new(
         key=secret_key.digest(), msg=data_check_string.encode(), digestmod=hashlib.sha256

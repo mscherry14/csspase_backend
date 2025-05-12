@@ -9,7 +9,7 @@ class ProductsRepository(AsyncRepository[ProductDB]):
     def __init__(self, db: AsyncIOMotorDatabase):
         super().__init__(db, ProductDB, "products")
 
-    async def product_by_product_id(self, product_id: str, session: AsyncIOMotorClientSession | None) -> SimpleResult[ProductDB]:
+    async def product_by_product_id(self, product_id: str, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[ProductDB]:
         try:
             doc = await self.collection().find_one({"productId": product_id}, session=session)
             if not doc:

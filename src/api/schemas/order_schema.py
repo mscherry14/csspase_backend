@@ -1,16 +1,17 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field, model_validator, ConfigDict
 
-from ..utils import PyObjectId
+from pydantic import ConfigDict, model_validator, BaseModel
 
-class ProductDB(BaseModel):
-    id: Optional[PyObjectId] = Field(default=None, alias="_id")
-    productId: str
+from src.database.models.shop.order import OrderStatus
+
+
+class OrderSchema(BaseModel):
+    orderId: str
     price: int
     title: str
     photo: Optional[str] = None
-    created_at: Optional[datetime] = None
+    orderStatus: OrderStatus
     updated_at: Optional[datetime] = None
 
     @model_validator(mode='before')

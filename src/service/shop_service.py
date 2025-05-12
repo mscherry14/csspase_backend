@@ -57,22 +57,22 @@ class ShopService:
             try:
                 async with session.start_transaction():
                     # step 1 product
-                    res = await ProductsRepository(db=self.db).product_by_product_id(product_id=product_id)
+                    res = await ProductsRepository(db=self.db).product_by_product_id(product_id=product_id, session=session)
                     if isinstance(res, SimpleErrorResult):
                         return SimpleErrorResult(message='Products doesnt exist')
                     product = res.payload
                     # step 2 user
-                    res = await UsersRepository(db=self.db).get_by_user_id(user_id=user_id)
+                    res = await UsersRepository(db=self.db).get_by_user_id(user_id=user_id, session=session)
                     if isinstance(res, SimpleErrorResult):
                         return SimpleErrorResult(message='User doesnt exist')
                     # step 3 ?
                     # step 3.0 get user banking account
-                    res = await UserBankingAccountsRepository(db=self.db).get_account_by_user_id(user_id=user_id)
+                    res = await UserBankingAccountsRepository(db=self.db).get_account_by_user_id(user_id=user_id, session=session)
                     if isinstance(res, SimpleErrorResult):
                         return SimpleErrorResult(message='User banking account error: ' + res.message)
                     user_banking_account_id = res.payload.accountId
                     # step 4 create order
-                    res = await OrdersService(db=self.db).create_order(product=product, user_id=user_id)
+                    res = await OrdersService(db=self.db).create_order(product=product, user_id=user_id, session=session)
                     if isinstance(res, SimpleErrorResult):
                         return SimpleErrorResult(message=res.message)
                     order = res.payload
@@ -85,13 +85,12 @@ class ShopService:
                         status=TransferStatus.processing,
                     )
                     # step 6 push shop payment
-                    res = await ShopPaymentsRepository(db=self.db).create_payment(payment=shop_payment)
+                    res = await ShopPaymentsRepository(db=self.db).create_payment(payment=shop_payment, session=session)
                     if isinstance(res, SimpleErrorResult):
                         return SimpleErrorResult(message="shop payment creating error:" + res.message)
                     shop_payment = res.payload
 
                     # step 7 money transfer
-                    # TODO: implement money transfer
                     res = await MoneyTransferService(db=self.db).shop_transfer_money(session=session,
                                                                                from_acc=shop_payment.fromUserBankingAccount,
                                                                                to_acc=shop_payment.toShopAccount,

@@ -6,11 +6,11 @@ from ..utils import PyObjectId
 from .utils import TransferStatus
 
 class EventToUserPaymentDB(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
     fromEventBankingAccount: str # USE ACCOUNT ID instead of using event id (one event = one account)
     toUserBankingAccount: str # USE ACCOUNT ID instead of using tg_id (one user = one account)
     amount: int
-    status: TransferStatus
+    status: TransferStatus = Field(default=TransferStatus.processing)
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

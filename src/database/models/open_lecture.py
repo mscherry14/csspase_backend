@@ -5,7 +5,7 @@ from .utils import ExtraMaterial, TVideo, SimmiliarEvent, PyObjectId
 
 
 class OpenLectureDB(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
     openLectureId: str  # unique
     title: str
     description: str

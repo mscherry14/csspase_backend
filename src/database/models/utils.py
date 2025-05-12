@@ -47,3 +47,7 @@ class PyObjectId(ObjectId):
             json_schema=core_schema.no_info_plain_validator_function(validate),
             serialization=core_schema.plain_serializer_function_ser_schema(serialize)
         )
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        return {"type": "string", "format": "objectid"}

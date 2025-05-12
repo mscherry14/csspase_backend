@@ -20,7 +20,7 @@ class EventToUserPaymentsRepository:
     def get_collection(self) -> AsyncIOMotorCollection:
         return self.db[COLLECTION]
 
-    async def create_payment(self, payment: EventToUserPaymentDB, session: AsyncIOMotorClientSession | None) -> SimpleResult[EventToUserPaymentDB]:
+    async def create_payment(self, payment: EventToUserPaymentDB, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[EventToUserPaymentDB]:
         """
         Порядок создания нового money transfer (возможно это делает скорее сервис, но и на уровне бд
         будем пытаться поддерживать на всякий:
@@ -79,7 +79,7 @@ class EventToUserPaymentsRepository:
         except Exception as e:
             return SimpleErrorResult(message="Payments parsing error: " + str(e))
 
-    async def change_payment_status(self, payment_id: PyObjectId, status: TransferStatus, session: AsyncIOMotorClientSession | None) -> SimpleResult[
+    async def change_payment_status(self, payment_id: PyObjectId, status: TransferStatus, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[
         EventToUserPaymentDB]:
         if status == TransferStatus.processing:
             return SimpleErrorResult(message="You can't set processing payment status")
