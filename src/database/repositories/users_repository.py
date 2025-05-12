@@ -9,7 +9,7 @@ class UsersRepository(AsyncRepository[UserDB]):
     def __init__(self, db: AsyncIOMotorDatabase):
         super().__init__(db, UserDB, "users")
 
-    async def get_by_user_id(self, user_id: int, session: AsyncIOMotorClientSession | None) -> SimpleResult[UserDB]:
+    async def get_by_user_id(self, user_id: int, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[UserDB]:
         try:
             doc = await self.collection().find_one({"tg_id": user_id}, session=session)
             if not doc:
