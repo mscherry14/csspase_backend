@@ -40,7 +40,7 @@ class ShopPaymentsRepository:
             payment.status = TransferStatus.processing
             payment.created_at = payment.updated_at = datetime.now(tz=timezone.utc)
             try:
-                result = await self.get_collection().insert_one(payment.model_dump(), session=session)
+                result = await self.get_collection().insert_one(payment.model_dump(exclude_unset=True, exclude_none=True), session=session)
                 if result.acknowledged:
                     payment.id = result.inserted_id
                     return SimpleOkResult(payload=payment)

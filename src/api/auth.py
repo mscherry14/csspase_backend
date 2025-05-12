@@ -70,7 +70,6 @@ async def refresh_token(refr_token: str = Depends(oauth2_scheme)):
         )
 
     username = payload.get("sub")
-    print('username: ', username)
     if int(username) != 123456789:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

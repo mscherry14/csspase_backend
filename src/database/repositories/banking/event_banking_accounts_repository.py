@@ -31,7 +31,7 @@ class EventBankingAccountsRepository:
                 updated_at=datetime.now(tz=timezone.utc),
             )
             try:
-                result = await self.get_collection().insert_one(new_account.model_dump(), session=session)
+                result = await self.get_collection().insert_one(new_account.model_dump(exclude_none=True, exclude_unset=True), session=session)
                 if result.acknowledged:
                     new_account.id = result.inserted_id
                     return SimpleOkResult(payload=new_account)
