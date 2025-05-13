@@ -79,7 +79,6 @@ class ShopService:
                     # step 5 shop payment
                     shop_payment = ShopPaymentDB(
                         fromUserBankingAccount=user_banking_account_id,
-                        # USE ACCOUNT ID instead of using tg_id (one user = one account)
                         amount=product.price,
                         orderId=order.orderId,
                         status=TransferStatus.processing,
@@ -91,7 +90,7 @@ class ShopService:
                     shop_payment = res.payload
 
                     # step 7 money transfer
-                    res = await MoneyTransferService(db=self.db).shop_transfer_money(session=session,
+                    await MoneyTransferService(db=self.db).shop_transfer_money(session=session,
                                                                                from_acc=shop_payment.fromUserBankingAccount,
                                                                                to_acc=shop_payment.toShopAccount,
                                                                                amount=shop_payment.amount,
@@ -99,29 +98,15 @@ class ShopService:
 
                     # step 8 set shop payment status
                     # step 9 set order status
-                    if isinstance(res, SimpleErrorResult):
-                        inner_res = await ShopPaymentsRepository(db=self.db).change_payment_status(
-                            payment_id=shop_payment.payment_id, status=TransferStatus.aborted, session=session)
-                        if isinstance(inner_res, SimpleErrorResult):
-                            raise Exception(
-                                "critical error: after transaction aborted results may be not saved! Error: " + inner_res.message)
-                        inner_res = await OrdersService(db=self.db).order_set_cancelled(order_id=order.orderId, session=session)
-                        if isinstance(inner_res, SimpleErrorResult):
-                            raise Exception(
-                                "critical error: after transaction aborted results may be not saved! Error: " + inner_res.message)
-                        return SimpleErrorResult(message=res.message)
-
                     inner_res = await ShopPaymentsRepository(db=self.db).change_payment_status(
                         payment_id=shop_payment.payment_id,
                         status=TransferStatus.completed, session=session)
                     if isinstance(inner_res, SimpleErrorResult):
-                        raise Exception(
-                            "critical error: after transaction succeed results may be not saved! Error: " + inner_res.message)
+                        raise Exception(inner_res.message)
                     inner_res = await OrdersService(db=self.db).add_payment(order_id=order.orderId,
                                                                             payment_id=shop_payment.payment_id, session=session)
                     if isinstance(inner_res, SimpleErrorResult):
-                        raise Exception(
-                            "critical error: after transaction succeed results may be not saved! Error: " + inner_res.message)
+                        raise Exception(inner_res.message)
 
                     # если всё ок → commit
             except Exception as e:

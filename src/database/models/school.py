@@ -1,6 +1,6 @@
 from typing import Optional, List
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
 
 from .utils import PyObjectId
 
@@ -12,6 +12,7 @@ class SchoolDB(BaseModel):
     shortDescription: str
     dateStart: Optional[datetime] = None
     dateEnd: Optional[datetime] = None
+    speakers: Optional[List[EmailStr]] = None
     registrationDeadline: Optional[datetime] = None
     registrationLink: Optional[str] = None  # HttpUrl from pydantic
     tags: Optional[List[str]] = Field(default_factory=list)

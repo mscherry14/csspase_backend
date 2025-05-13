@@ -6,7 +6,7 @@ from enum import Enum
 from .utils import PyObjectId
 
 
-class Role(str, Enum):
+class PersonRole(str, Enum):
     chief = "chief"
     coordinator = "coordinator"
     developer = "developer"
@@ -16,10 +16,11 @@ class Role(str, Enum):
 
 class PersonDB(BaseModel):
     id: Optional[PyObjectId] = Field(default=None, alias="_id")
+    tg_id: Optional[int] = None
     firstName: str
     lastName: str
     bio: str
-    role: Role
+    role: PersonRole
     photo: str
     email: EmailStr
     priority: Optional[int | str] = None

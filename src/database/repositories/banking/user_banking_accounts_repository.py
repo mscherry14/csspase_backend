@@ -65,7 +65,7 @@ class UserBankingAccountsRepository:
             except Exception as e:
                 return SimpleErrorResult(message="Event account parsing error: " + str(e))
 
-    async def do_transaction(self, transaction: TransactionDB, account_id: str, session: AsyncIOMotorClientSession) -> SimpleResult[UserBankingAccountDB]:
+    async def do_transaction(self, transaction: TransactionDB, account_id: str, session: AsyncIOMotorClientSession) -> None:
         result = await self.get_account_by_account_id(account_id, session=session)
         if isinstance(result, SimpleOkResult):
             account = result.payload
@@ -76,16 +76,16 @@ class UserBankingAccountsRepository:
                     account.balance -= transaction.amount
             elif transaction.type == TransactionType.deposit:
                 account.balance += transaction.amount
-            transaction.id = PyObjectId(ObjectId())
             transaction.created_at = datetime.now(tz=timezone.utc)
             account.transactions.append(transaction)
             account.updated_at = datetime.now(tz=timezone.utc)
             update_data = account.model_dump(exclude_unset=True, exclude_none=True)
-            await self.get_collection().update_one(
+            res = await self.get_collection().update_one(
                 {"_id": account.id},
                 {"$set": update_data},
                 session=session)
-
-            return SimpleOkResult(payload=result)
+            if not res.modified_count:
+                raise TransactionException("unknown error while updating account")
+            return
         else:
             raise TransactionException("account not found")

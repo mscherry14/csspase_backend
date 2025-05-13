@@ -1,24 +1,26 @@
-from typing import Optional, List
 from datetime import datetime
-from pydantic import BaseModel, Field, model_validator, ConfigDict, EmailStr
+from typing import Optional, List
+from pydantic import BaseModel, Field, EmailStr, model_validator, ConfigDict
 
-from .utils import PyObjectId
+from .event import EventType
+from ...database.models import PyObjectId, OpenLectureDB, CourseDB, CompetitionDB, SchoolDB
 
 
-class CompetitionDB(BaseModel):
+class ExtendedEventModel(BaseModel):
     id: Optional[PyObjectId] = Field(default=None, alias="_id")
-    competitionId: str  # unique
+    eventId: str
     title: str
+    type: EventType
     shortDescription: str
-    dateStart: Optional[datetime] = None
-    dateEnd: Optional[datetime] = None
-    speakers: Optional[List[EmailStr]] = None
+    speakers: List[EmailStr] = Field(default=list)
+    tags: Optional[List[str]] = None
     registrationDeadline: Optional[datetime] = None
     registrationLink: Optional[str] = None
-    tags: Optional[List[str]] = None
-    mainPage: Optional[bool] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    bankAccountId: str
+    balance: int
+    init_balance: int
 
     @model_validator(mode='before')
     def parse_date(cls, values):
@@ -32,6 +34,4 @@ class CompetitionDB(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
         arbitrary_types_allowed=True,
-        json_schema_extra={"collection": "competitions"}
     )
-

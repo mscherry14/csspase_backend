@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from src.api.schemas.telegram_auth_schema import TelegramAuthSchema
 from src.database.database import db
-from src.database.models import UserDB, Role, UserRoles
+from src.database.models import UserDB, PersonRole, UserRoles
 from src.database.repositories.users_repository import UsersRepository
 from src.service.auth.jwt import decode_token, create_access_token, create_refresh_token
 from fastapi.security import OAuth2PasswordBearer
@@ -36,13 +36,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserDB:
         payload = decode_token(token)
         if not payload:
             raise credentials_exception
-        username: int = int(payload.get("sub"))  # TODO: get real cred
-        if username is None:
+        user_id: int = int(payload.get("sub"))  # TODO: get real cred
+        if user_id is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
 
-    user = await UsersRepository(db=db).get_by_user_id(user_id=username)
+    user = await UsersRepository(db=db).get_by_user_id(user_id=user_id)
     if (user is None) or isinstance(user, SimpleErrorResult):
         raise credentials_exception
     return user.payload
@@ -58,10 +58,10 @@ async def get_tokens(user: UserDB) -> Token:
 
     # token creating
     access_token = create_access_token(
-        data=data,  # TODO: telegram auth
+        data=data,
     )
     ref_token = await create_refresh_token(
-        data=data,  # TODO: telegram auth
+        data=data,
     )
     return Token(
         access_token=access_token,
