@@ -59,8 +59,10 @@ class TeacherEventService:
         return res.payload
 
     # TODO: implement
-    async def _extend_event(self, event: EventModel, session: AsyncIOMotorClientSession | None = None) -> ExtendedEventModel:
-        res = await EventBankingAccountsRepository(db=self.db).get_account_by_event_id(event_id=event.eventId, session=session)
+    async def _extend_event(self, event: EventModel,
+                            session: AsyncIOMotorClientSession | None = None) -> ExtendedEventModel:
+        res = await EventBankingAccountsRepository(db=self.db).get_account_by_event_id(event_id=event.eventId,
+                                                                                       session=session)
         # get event banking account info
         if res is None:
             raise EventServiceException("event banking account error")
@@ -73,8 +75,9 @@ class TeacherEventService:
         events = [await self._extend_event(event) for event in raw_events]
         return events
 
-    #TODO: maybe check permission here
-    async def get_one_hosted_event(self, user_id: int, event_id: str, session: AsyncIOMotorClientSession | None = None) -> ExtendedEventModel:
+    # TODO: maybe check permission here
+    async def get_one_hosted_event(self, user_id: int, event_id: str,
+                                   session: AsyncIOMotorClientSession | None = None) -> ExtendedEventModel:
         """
         get info about one concrete event by id, if user is allowed to get this info
         """
@@ -93,7 +96,8 @@ class TeacherEventService:
         return res
 
     # TODO: type check
-    async def send_token_to_participant(self, user_id: int, event_id: str, receiver_id: int, amount: int) -> SimpleResult[EventToUserPaymentDB]:
+    async def send_token_to_participant(self, user_id: int, event_id: str, receiver_id: int, amount: int) -> \
+    SimpleResult[EventToUserPaymentDB]:
         """
         Процесс проведения перевода:
         1. проверяем существование мероприятия и аккаунта мероприятия eventBankingAccountId
@@ -127,10 +131,11 @@ class TeacherEventService:
                             receiver = participant
                     if receiver is None:
                         raise EventServiceException("receiver not found in event participants")
-                    receiver_account_res = await UserBankingAccountsRepository(db=self.db).get_account_by_user_id(user_id=receiver_id, session=session)
+                    receiver_account_res = await UserBankingAccountsRepository(db=self.db).get_account_by_user_id(
+                        user_id=receiver_id, session=session)
                     if isinstance(receiver_account_res, SimpleErrorResult):
                         raise Exception("receiver account getting error")
-                    receiver_account= receiver_account_res.payload
+                    receiver_account = receiver_account_res.payload
                     # step 5 event to user payment object
                     payment = EventToUserPaymentDB(
                         fromEventBankingAccount=ext_event.bankAccountId,
@@ -138,17 +143,18 @@ class TeacherEventService:
                         amount=amount,
                     )
                     # step 6 event to user payment push
-                    res = await EventToUserPaymentsRepository(db=self.db).create_payment(payment=payment, session=session)
+                    res = await EventToUserPaymentsRepository(db=self.db).create_payment(payment=payment,
+                                                                                         session=session)
                     if isinstance(res, SimpleErrorResult):
                         raise Exception("payment creating error")
                     payment = res.payload
                     # step 7 money transfer
                     await MoneyTransferService(db=self.db).event_to_user_transfer_money(session=session,
-                                                                                     from_acc=payment.fromEventBankingAccount,
-                                                                                     to_acc=payment.toUserBankingAccount,
-                                                                                     amount=payment.amount,
-                                                                                     operation_id=str(
-                                                                                         payment.id), )
+                                                                                        from_acc=payment.fromEventBankingAccount,
+                                                                                        to_acc=payment.toUserBankingAccount,
+                                                                                        amount=payment.amount,
+                                                                                        operation_id=str(
+                                                                                            payment.id), )
                     # step 8 result pushing
                     inner_res = await EventToUserPaymentsRepository(db=self.db).change_payment_status(
                         payment_id=payment.payment_id,

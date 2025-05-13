@@ -20,6 +20,8 @@ class OrderSchema(BaseModel):
         if isinstance(date_value, dict) and "$date" in date_value:
             date_value = date_value["$date"]
         if isinstance(date_value, str):
+            if not date_value.strip():
+                return None
             values["date"] = datetime.fromisoformat(date_value.replace("Z", "+00:00"))
         return values
 
