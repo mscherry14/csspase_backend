@@ -38,7 +38,6 @@ async def get_transactions(current_user_tg_id: int = Depends(get_current_user_tg
 # @router.get("/transactions/{transaction_id}")
 # async def get_one_transaction(tg_id: str, limit: int = 10):
 #     """"""
-#     #TODO: implement
 #     return
 
 
@@ -54,7 +53,6 @@ async def get_products():
 # @router.get("/products/{product_id}")
 # async def get_one_product():
 #     """Информация об одном товаре."""
-#     #TODO: implement
 #     return
 
 @router.post("/orders/{product_id}", response_model=OrderSchema)

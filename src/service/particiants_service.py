@@ -3,8 +3,13 @@ from typing import List
 from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorClientSession
 
 from src.database.models import UserDB
+from src.database.models.banking.utils import TransferStatus
+from src.database.repositories.banking.event_banking_accounts_repository import EventBankingAccountsRepository
+from src.database.repositories.banking.event_to_user_payments_repository import EventToUserPaymentsRepository
+from src.database.repositories.banking.user_banking_accounts_repository import UserBankingAccountsRepository
 from src.database.repositories.team_repository import TeamsRepository
 from src.database.repositories.users_repository import UsersRepository
+from src.service.event_service import EventServiceException
 from src.service.models.event import EventModel, EventType
 from src.utils.simple_result import SimpleOkResult, SimpleResult, SimpleErrorResult
 
@@ -14,6 +19,32 @@ class ParticipantsServiceException(Exception):
 class ParticipantsService:
     def __init__(self, db: AsyncIOMotorDatabase):
         self.db = db
+
+    async def extend_participant(self, participant_id: int, event_id: str,
+                            session: AsyncIOMotorClientSession | None = None) -> int:
+        """
+        Returns how many tokens was sent to participant in this event
+        """
+        res = await EventBankingAccountsRepository(db=self.db).get_account_by_event_id(event_id=event_id,
+                                                                                       session=session)
+        # get event banking account info
+        if isinstance(res, SimpleErrorResult):
+            raise Exception("event banking account error")
+        event_account = res.payload.accountId
+        res = await UserBankingAccountsRepository(db=self.db).get_account_by_user_id(user_id=participant_id,
+                                                                                       session=session)
+        # get event banking account info
+        if isinstance(res, SimpleErrorResult):
+            raise Exception("user banking account error")
+        user_account = res.payload.accountId
+        amount = 0
+        result = await EventToUserPaymentsRepository(db=self.db).get_payments_by_filter(from_event_id=event_account, to_user_id=user_account, status=TransferStatus.completed, session=session)
+        if isinstance(res, SimpleErrorResult):
+            raise Exception("money transfer service error")
+        for payment in result.payload:
+            amount += payment.amount
+        return amount
+
 
     async def get_event_participants(self, event: EventModel, session: AsyncIOMotorClientSession | None = None) -> List[UserDB]:
         res : SimpleResult[List[UserDB]] = SimpleOkResult(payload=list())

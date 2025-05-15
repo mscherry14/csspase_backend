@@ -45,7 +45,7 @@ async def get_participant(event_id: str, tg_id: int = Depends(get_current_user_t
     """Список участников события."""
     try:
         res = await TeacherEventService(db=db).get_event_participants(event_id=event_id, user_id=tg_id)
-        return list(map(ParticipantSchema.from_user_db, res))
+        return [await ParticipantSchema.from_user_db(x, event_id) for x in res]
     except Exception as e:
         raise HTTPException(status_code=403, detail=str(e))
 
