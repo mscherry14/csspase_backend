@@ -1,13 +1,10 @@
 from motor.motor_asyncio import AsyncIOMotorClient
-import os
-from dotenv import load_dotenv
-from pymongo import WriteConcern
 
-load_dotenv("../../.env")
+from src.config import settings
 
 # Чтение переменных окружения
-MONGO_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-MONGO_NAME = os.getenv("MONGODB_NAME", "test")
+MONGO_URL = settings.MONGO_URL
+MONGO_NAME = settings.MONGO_NAME
 
 # Подключение к MongoDB через Motor
 client = AsyncIOMotorClient(MONGO_URL)

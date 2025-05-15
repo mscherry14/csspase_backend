@@ -7,7 +7,7 @@ from ...models.banking.event_banking_account import EventBankingAccountDB
 from ...models.banking.transaction import TransactionDB, TransactionType
 
 COLLECTION = "eventBankingAccounts"
-# DEFAULT_INIT_BALANCE=1500
+DEFAULT_INIT_BALANCE=1500
 
 class EventBankingAccountsRepository:
     def __init__(self, db: AsyncIOMotorDatabase):
@@ -43,10 +43,10 @@ class EventBankingAccountsRepository:
     async def get_account_by_event_id(self, event_id: str, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[EventBankingAccountDB]:
         event_doc = await self.get_collection().find_one({"event": event_id}, session=session)
         if not event_doc:
-            # res = await self.create_account(event_id=event_id, init_balance=DEFAULT_INIT_BALANCE,session=session)
-            # if isinstance(res, SimpleErrorResult):
-            #     return SimpleErrorResult(message="no acc found, trying to create with error: "+ res.message)
-            # return SimpleOkResult(payload=res.payload)
+            res = await self.create_account(event_id=event_id, init_balance=DEFAULT_INIT_BALANCE,session=session)
+            if isinstance(res, SimpleErrorResult):
+                return SimpleErrorResult(message="no acc found, trying to create with error: "+ res.message)
+            return SimpleOkResult(payload=res.payload)
             return SimpleErrorResult(message="event banking account not found")
         else:
             try:
