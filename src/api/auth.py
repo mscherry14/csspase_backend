@@ -141,7 +141,7 @@ async def test_login():
     user_id = 123456789
     user = await UsersRepository(db=db).get_by_user_id(user_id=user_id)
     if (user is None) or isinstance(user, SimpleErrorResult):
-        raise HTTPException(status_code=400, detail=f"you db suck: {user.message}")#credentials_exception
+        raise credentials_exception
     return await get_tokens(user.payload)
 
 @router.post("/test_login_gg", response_model=Token)
