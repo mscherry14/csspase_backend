@@ -40,7 +40,7 @@ class PyObjectId(ObjectId):
             raise ValueError("Invalid ObjectId")
 
         def serialize(v: ObjectId):
-            return {"$oid": str(v)}
+            return v
 
         return core_schema.json_or_python_schema(
             python_schema=core_schema.no_info_plain_validator_function(validate),

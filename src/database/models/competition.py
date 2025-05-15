@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field, model_validator, ConfigDict, EmailStr
 
 from .utils import PyObjectId
+from ...utils.validators import parse_date
 
 
 class CompetitionDB(BaseModel):
@@ -21,15 +22,13 @@ class CompetitionDB(BaseModel):
     updated_at: Optional[datetime] = None
 
     @model_validator(mode='before')
-    def parse_date(cls, values):
-        date_value = values.get("date")
-        if isinstance(date_value, dict) and "$date" in date_value:
-            date_value = date_value["$date"]
-        if isinstance(date_value, str):
-            if not date_value.strip():
-                return None
-            values["date"] = datetime.fromisoformat(date_value.replace("Z", "+00:00"))
-        return values
+    def parse_dates(cls, values):
+        v_1 = parse_date('created_at', values=values)
+        v_2 = parse_date('updated_at', values=v_1)
+        v_3 = parse_date('registration_deadline', values=v_2)
+        v_4 = parse_date('dateStart', values=v_3)
+        v_5 = parse_date('dateEnd', values=v_4)
+        return v_5
 
     model_config = ConfigDict(
         populate_by_name=True,

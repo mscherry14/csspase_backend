@@ -1,6 +1,7 @@
 from typing import List
 
 from motor.motor_asyncio import AsyncIOMotorClientSession
+from pydantic import EmailStr
 
 from src.database.models import UserRoles, PersonDB
 from src.database.models.banking.event_to_user_payment import EventToUserPaymentDB
@@ -30,31 +31,23 @@ class TeacherEventService:
         self.schoolsRepository = SchoolsRepository(self.db)
         self.competitionsRepository = CompetitionsRepository(self.db)
 
-    # async def _get_user_from_email(self, user_mail: EmailStr):
-    #     res = await PeopleRepository(db=db).get_by_email(mail=user_mail)
-    #     if res is None:
-    #         raise EventServiceException("no user with such mail found")
-    #     user_id = res.payload.tg_id
-    #     if not user_id:
-    #         raise EventServiceException("no tg-bot user with such mail found")
-    #     result = await UsersRepository(db=db).get_by_user_id(user_id)
-    #     if result is None:
-    #         raise EventServiceException("no user with such tg_id found")
-    #     if not UserRoles.TEACHER in result.payload.roles:
-    #         raise EventServiceException("incorrect role. please contact with administrator")
-    #     return result.payload
+    async def get_user_from_email(self, user_mail: EmailStr) -> PersonDB:
+        res = await PeopleRepository(db=self.db).get_by_email(mail=user_mail)
+        if res is None:
+            raise EventServiceException("no user with such mail found")
+        return res.payload
 
     async def _get_user_from_tg_id(self, user_id: int) -> PersonDB:
         # verify role
         result = await UsersRepository(db=self.db).get_by_user_id(user_id)
-        if result is None:
+        if isinstance(result, SimpleErrorResult):
             raise EventServiceException("no user with such tg_id found")
         if not UserRoles.TEACHER in result.payload.roles:
             raise EventServiceException("incorrect role. please contact with administrator")
 
         # get
         res = await PeopleRepository(db=self.db).get_by_user_id(user_id=user_id)
-        if res is None:
+        if isinstance(res, SimpleErrorResult):
             raise EventServiceException("no user with such mail found")
         return res.payload
 
@@ -64,7 +57,7 @@ class TeacherEventService:
         res = await EventBankingAccountsRepository(db=self.db).get_account_by_event_id(event_id=event.eventId,
                                                                                        session=session)
         # get event banking account info
-        if res is None:
+        if isinstance(res, SimpleErrorResult):
             raise EventServiceException("event banking account error")
         return ExtendedEventModel(**event.model_dump(), init_balance=res.payload.init_balance,
                                   balance=res.payload.balance, bankAccountId=res.payload.accountId)
@@ -89,9 +82,12 @@ class TeacherEventService:
         event = await self._extend_event(raw_event, session=session)
         return event
 
-    # TODO: type check
-    async def get_event_participants(self, event_id: str, session: AsyncIOMotorClientSession | None = None):
+    async def get_event_participants(self, event_id: str, user_id: int, session: AsyncIOMotorClientSession | None = None):
+        person = await self._get_user_from_tg_id(user_id)
         raw_event = await EventService(db=self.db).get_event_by_id(event_id=event_id, session=session)
+        if person.email not in raw_event.speakers:
+            raise EventServiceException(
+                "access denied: you are not allowed to get event extended info if you are not speaker")
         res = await ParticipantsService(db=self.db).get_event_participants(event=raw_event, session=session)
         return res
 
@@ -124,7 +120,7 @@ class TeacherEventService:
                     # step 2 sender checking
                     ext_event = await self.get_one_hosted_event(user_id=user_id, event_id=event_id, session=session)
                     # step 3 receiver checking
-                    participants = await self.get_event_participants(event_id=event_id, session=session)
+                    participants = await self.get_event_participants(event_id=event_id, user_id=user_id, session=session)
                     receiver = None
                     for participant in participants:
                         if participant.tg_id == receiver_id:
@@ -157,7 +153,7 @@ class TeacherEventService:
                                                                                             payment.id), )
                     # step 8 result pushing
                     inner_res = await EventToUserPaymentsRepository(db=self.db).change_payment_status(
-                        payment_id=payment.payment_id,
+                        payment_id=payment.id,
                         status=TransferStatus.completed, session=session)
             except Exception as e:
                 return SimpleErrorResult(message=str("Transaction failed: " + str(e)))

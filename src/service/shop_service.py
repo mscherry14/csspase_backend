@@ -10,6 +10,7 @@ from ..database.models.shop.order import OrderDB
 from ..database.models.shop.product import ProductDB
 from ..database.repositories.banking.shop_payments_repository import ShopPaymentsRepository
 from ..database.repositories.banking.user_banking_accounts_repository import UserBankingAccountsRepository
+from ..database.repositories.shop.orders_repository import OrdersRepository
 from ..database.repositories.shop.products_repository import ProductsRepository
 from ..database.repositories.users_repository import UsersRepository
 from ..utils.simple_result import SimpleResult, SimpleErrorResult, SimpleOkResult
@@ -88,7 +89,6 @@ class ShopService:
                     if isinstance(res, SimpleErrorResult):
                         return SimpleErrorResult(message="shop payment creating error:" + res.message)
                     shop_payment = res.payload
-
                     # step 7 money transfer
                     await MoneyTransferService(db=self.db).shop_transfer_money(session=session,
                                                                                from_acc=shop_payment.fromUserBankingAccount,
@@ -98,13 +98,17 @@ class ShopService:
 
                     # step 8 set shop payment status
                     # step 9 set order status
+                    print('im here')
                     inner_res = await ShopPaymentsRepository(db=self.db).change_payment_status(
-                        payment_id=shop_payment.payment_id,
+                        payment_id=shop_payment.id,
                         status=TransferStatus.completed, session=session)
+                    print('im here 2')
                     if isinstance(inner_res, SimpleErrorResult):
                         raise Exception(inner_res.message)
+                    print('im here 3')
                     inner_res = await OrdersService(db=self.db).add_payment(order_id=order.orderId,
-                                                                            payment_id=shop_payment.payment_id, session=session)
+                                                                            payment_id=shop_payment.id, session=session)
+                    print('im here 4')
                     if isinstance(inner_res, SimpleErrorResult):
                         raise Exception(inner_res.message)
 

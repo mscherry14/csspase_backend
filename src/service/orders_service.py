@@ -72,7 +72,6 @@ class OrdersService:
             return SimpleErrorResult(message=res.message)
         if res.payload.orderStatus != OrderStatus.created:
             return SimpleErrorResult(message="order wasn't in created state")
-
         payment_res = await ShopPaymentsRepository(db=self.db).get_by_id(object_id=payment_id, session=session)
         if isinstance(payment_res, SimpleErrorResult):
             return SimpleErrorResult(message=payment_res.message)
@@ -80,12 +79,11 @@ class OrdersService:
             return SimpleErrorResult(message="wrong payment status")
         if payment_res.payload.orderId != order_id:
             return SimpleErrorResult(message="wrong payment orderId")
-
         order = res.payload
         order.updated_at = datetime.now(tz=timezone.utc)
         order.paymentId = str(payment_id)
-        order.status = OrderStatus.paid
-        result = await OrdersRepository(self.db).update_one(obj=order)
+        order.orderStatus = OrderStatus.paid
+        result = await OrdersRepository(self.db).update_one(obj=order, session=session)
         if isinstance(result, SimpleErrorResult):
             return SimpleErrorResult(message=result.message)
         return SimpleOkResult(payload=order)

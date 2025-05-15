@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, model_validator, ConfigDict
 
+from src.utils.validators import parse_date
 from ..utils import PyObjectId
 
 
@@ -13,15 +14,9 @@ class RefreshTokenDB(BaseModel):
     expires_at: datetime
 
     @model_validator(mode='before')
-    def parse_date(cls, values):
-        date_value = values.get("date")
-        if isinstance(date_value, dict) and "$date" in date_value:
-            date_value = date_value["$date"]
-        if isinstance(date_value, str):
-            if not date_value.strip():
-                return None
-            values["date"] = datetime.fromisoformat(date_value.replace("Z", "+00:00"))
-        return values
+    def parse_dates(cls, values):
+        v_1 = parse_date('expires_at', values=values)
+        return v_1
 
     model_config = ConfigDict(
         populate_by_name=True,

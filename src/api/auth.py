@@ -16,7 +16,7 @@ from src.utils.simple_result import SimpleErrorResult
 
 router = APIRouter(prefix="/auth")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="tg_login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/tg_login")
 
 credentials_exception = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -79,7 +79,7 @@ async def telegram_login(payload: TelegramAuthSchema = Body()):
     user = await UsersRepository(db=db).get_by_user_id(user_id=user_id)
     if (user is None) or isinstance(user, SimpleErrorResult):
         raise credentials_exception
-    return get_tokens(user.payload)
+    return await get_tokens(user.payload)
 
 
 @router.post("/refresh", response_model=Token)
@@ -91,7 +91,7 @@ async def refresh_token(refresh: str = Depends(oauth2_scheme)):
             detail="Invalid refresh token"
         )
     user = await get_current_user(refresh)
-    return get_tokens(user.payload)
+    return await get_tokens(user)
 
 
 @router.get("/me", response_model=UserDB)
@@ -108,10 +108,50 @@ async def get_current_user_tg_id(current_user: UserDB = Depends(get_current_user
 async def get_my_roles(current_user: UserDB = Depends(get_current_user)):
     return current_user.roles
 
-def role_checker(role: UserRoles, current_user: UserDB = Depends(get_current_user)):
-    if role not in current_user.roles:
+def user_role_checker(current_user: UserDB = Depends(get_current_user)):
+    if UserRoles.USER not in current_user.roles:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to perform this action: role " + role + " needed"
+            detail="You do not have permission to perform this action: role " + UserRoles.USER + " needed"
         )
     return None
+
+def teacher_role_checker(current_user: UserDB = Depends(get_current_user)):
+    if UserRoles.TEACHER not in current_user.roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to perform this action: role " + UserRoles.TEACHER + " needed"
+        )
+    return None
+def admin_role_checker(current_user: UserDB = Depends(get_current_user)):
+    if UserRoles.ADMIN not in current_user.roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to perform this action: role " + UserRoles.ADMIN + " needed"
+        )
+    return None
+
+#TODO: REMOVE AFTER TEST WRITTEN
+@router.post("/test_login", response_model=Token)
+async def test_login():
+    # # verify user
+    # if not check_webapp_signature(payload.init_data):
+    #     raise credentials_exception
+    # get user
+    user_id = 123456789
+    user = await UsersRepository(db=db).get_by_user_id(user_id=user_id)
+    if (user is None) or isinstance(user, SimpleErrorResult):
+        raise credentials_exception
+    return await get_tokens(user.payload)
+
+@router.post("/test_login_gg", response_model=Token)
+async def test_login():
+    # # verify user
+    # if not check_webapp_signature(payload.init_data):
+    #     raise credentials_exception
+    # get user
+    user_id = 1111111111
+    user = await UsersRepository(db=db).get_by_user_id(user_id=user_id)
+    if (user is None) or isinstance(user, SimpleErrorResult):
+        raise credentials_exception
+    return await get_tokens(user.payload)

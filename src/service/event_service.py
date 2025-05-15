@@ -3,7 +3,7 @@ from typing import List
 from motor.motor_asyncio import AsyncIOMotorClientSession
 from pydantic import EmailStr
 
-from models.event import EventModel
+from .models.event import EventModel
 from ..database.repositories.competitions_repository import CompetitionsRepository
 from ..database.repositories.courses_repository import CoursesRepository
 from ..database.repositories.open_lectures_repository import OpenLecturesRepository

@@ -41,7 +41,7 @@ class AsyncRepository(Generic[ModelType], ABC):
         except Exception as e:
             return SimpleErrorResult(str(e))
 
-    async def find_all(self, filter_options: dict = dict(), session: AsyncIOMotorClientSession | None = None) -> SimpleResult[List[ModelType]]:
+    async def find_all(self, filter_options: dict = None, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[List[ModelType]]:
         try:
             cursor = self.collection().find(filter_options, session=session)
             items = [self._model(**doc) async for doc in cursor]
@@ -61,10 +61,13 @@ class AsyncRepository(Generic[ModelType], ABC):
 
     async def update_one(self, obj: ModelType, session: AsyncIOMotorClientSession | None = None, upsert: bool = False) -> SimpleResult[bool]:
         try:
+            # mock = await self.find_all(session=session)
+            # print(mock)
+            # print(obj.id)
             obj_id = ObjectId(obj.id)
             new_obj = obj.model_copy(update={"_id": None})
             data = new_obj.model_dump(by_alias=True, exclude_none=True)
-            result = await self.collection().update_one({"_id": obj_id}, data, session=session, upsert=upsert)
+            result = await self.collection().update_one({"_id": obj_id},  {"$set": data}, session=session, upsert=upsert)
             if result.matched_count:
                 return SimpleOkResult(payload=True)
             return SimpleErrorResult(f"No document matched id={obj_id}")

@@ -4,6 +4,7 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr, model_validator, Field, ConfigDict, AfterValidator
 
 from .utils import TVideo, ExtraMaterial, SimmiliarEvent, strip_control_chars, PyObjectId
+from ...utils.validators import parse_date
 
 
 class CourseLectureDB(BaseModel):
@@ -17,13 +18,14 @@ class CourseLectureDB(BaseModel):
     speakers: List[EmailStr]
 
     @model_validator(mode='before')
-    def parse_date(cls, values):
+    def v_parse_date(cls, values):
         date_value = values.get("date")
+        if not date_value:
+            values["date"] = None
+            return values
         if isinstance(date_value, dict) and "$date" in date_value:
             date_value = date_value["$date"]
         if isinstance(date_value, str):
-            if not date_value.strip():
-                return None
             values["date"] = datetime.fromisoformat(date_value.replace("Z", "+00:00"))
         return values
 
@@ -63,7 +65,10 @@ class CourseDB(BaseModel):
             for key, val in values.items():
                 if isinstance(val, str):
                     values[key] = strip_control_chars(val)
-        return values
+
+        v_1 = parse_date('created_at', values=values)
+        v_2 = parse_date('updated_at', values=v_1)
+        return v_2
 
     model_config = ConfigDict(
         populate_by_name=True,
