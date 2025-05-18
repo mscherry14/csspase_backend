@@ -27,7 +27,13 @@ class ShopService:
         res = await ProductsRepository(self.db).find_all()
         return res
 
-    # здесь могло бы быть "достань инфо о продукте по productId, но у нас нет инфо о продукте
+    async def get_product_by_product_id(self, product_id: str) -> SimpleResult[ProductDB]:
+        """
+        просто достать из базы товары
+        """
+        res = await ProductsRepository(self.db).product_by_product_id(product_id)
+        return res
+
     # и какие-то еще админовские круды
 
     async def buy_product(self, user_id: int, product_id: str) -> SimpleResult[OrderDB]:
@@ -98,17 +104,13 @@ class ShopService:
 
                     # step 8 set shop payment status
                     # step 9 set order status
-                    print('im here')
                     inner_res = await ShopPaymentsRepository(db=self.db).change_payment_status(
                         payment_id=shop_payment.id,
                         status=TransferStatus.completed, session=session)
-                    print('im here 2')
                     if isinstance(inner_res, SimpleErrorResult):
                         raise Exception(inner_res.message)
-                    print('im here 3')
                     inner_res = await OrdersService(db=self.db).add_payment(order_id=order.orderId,
                                                                             payment_id=shop_payment.id, session=session)
-                    print('im here 4')
                     if isinstance(inner_res, SimpleErrorResult):
                         raise Exception(inner_res.message)
 

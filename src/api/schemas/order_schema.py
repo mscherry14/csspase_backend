@@ -13,6 +13,7 @@ class OrderSchema(BaseModel):
     title: str
     photo: Optional[str] = None
     orderStatus: OrderStatus
+    created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
     @model_validator(mode='before')

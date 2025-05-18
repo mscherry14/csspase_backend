@@ -72,7 +72,7 @@ class OrdersService:
             return SimpleErrorResult(message=res.message)
         if res.payload.orderStatus != OrderStatus.created:
             return SimpleErrorResult(message="order wasn't in created state")
-        payment_res = await ShopPaymentsRepository(db=self.db).get_by_id(object_id=payment_id, session=session)
+        payment_res = await ShopPaymentsRepository(db=self.db).get_one_by_id(object_id=payment_id, session=session)
         if isinstance(payment_res, SimpleErrorResult):
             return SimpleErrorResult(message=payment_res.message)
         if payment_res.payload.status != TransferStatus.completed:

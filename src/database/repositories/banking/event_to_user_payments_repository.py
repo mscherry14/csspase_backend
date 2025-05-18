@@ -102,3 +102,11 @@ class EventToUserPaymentsRepository:
             else:
                 return SimpleErrorResult(
                     message=f"Cannot change payment status: payment status is not processing ({payment.status}), so it cant be changed")
+
+    async def get_one_by_id(self, operation_id: str, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[EventToUserPaymentDB]:
+        try:
+            filter_opt = dict({"_id": ObjectId(operation_id)})
+            payment = await self.get_collection().find_one(filter_opt, session=session)
+            return SimpleOkResult(payload=EventToUserPaymentDB(**payment))
+        except Exception as e:
+            return SimpleErrorResult(message="Payments parsing error: " + str(e))

@@ -47,7 +47,6 @@ class EventBankingAccountsRepository:
             if isinstance(res, SimpleErrorResult):
                 return SimpleErrorResult(message="no acc found, trying to create with error: "+ res.message)
             return SimpleOkResult(payload=res.payload)
-            return SimpleErrorResult(message="event banking account not found")
         else:
             try:
                 account = EventBankingAccountDB(**event_doc)

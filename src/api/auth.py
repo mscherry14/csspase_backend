@@ -72,10 +72,10 @@ async def get_tokens(user: UserDB) -> Token:
 @router.post("/tg_login", response_model=Token)
 async def telegram_login(payload: TelegramAuthSchema = Body()):
     # verify user
-    if not check_webapp_signature(payload.init_data):
+    if not check_webapp_signature(payload.initData):
         raise credentials_exception
     # get user
-    user_id = get_user_id(payload.init_data)
+    user_id = get_user_id(payload.initData)
     user = await UsersRepository(db=db).get_by_user_id(user_id=user_id)
     if (user is None) or isinstance(user, SimpleErrorResult):
         raise credentials_exception

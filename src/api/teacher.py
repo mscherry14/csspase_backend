@@ -68,7 +68,13 @@ async def reward_participant(event_id: str, participant_id: int, req_body: Event
 
 
 
-# @router.get("/events/{event_id}/participants/{participant_id}", response_model=ParticipantDetail)
-# async def get_participant(event_id: str, participant_id: str, tg_id: int = Depends(get_current_user_tg_id)):
-#     """Данные участника события."""
-#     return {"user_id": participant_id, "reward": 10.0, "awarded_by": tg_id}
+@router.get("/events/{event_id}/participants/{participant_id}", response_model=ParticipantSchema)
+async def get_participant(event_id: str, participant_id: str, tg_id: int = Depends(get_current_user_tg_id)):
+    """Данные участника события."""
+    try:
+        res = await UsersRepository(db=db).get_by_user_id(int(participant_id))
+        if isinstance(res, SimpleErrorResult):
+            raise HTTPException(status_code=404, detail=res.message)
+        return await ParticipantSchema.from_user_db(res.payload, event_id=event_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -85,7 +85,7 @@ class ShopPaymentsRepository:
         except Exception as e:
             return SimpleErrorResult(message="Payments parsing error: " + str(e))
 
-    async def get_by_id(self, object_id: PyObjectId, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[ShopPaymentDB]:
+    async def get_one_by_id(self, object_id: PyObjectId, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[ShopPaymentDB]:
         try:
             object_id = ObjectId(object_id)
             doc = await self.get_collection().find_one({"_id": object_id}, session=session)
