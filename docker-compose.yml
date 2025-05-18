@@ -9,7 +9,7 @@ services:
       mongo:
         condition: service_healthy
     volumes:
-      - .:/src
+      - .:/app
     restart: always
 
   mongo:

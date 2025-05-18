@@ -7,11 +7,14 @@ from src.api.teacher import router as teacher_router
 from src.api.admin import router as admin_router
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.config import settings
+
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware, # type: ignore
-    allow_origins=["http://localhost:62427"],
+    allow_origins=[settings.ORIGIN],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

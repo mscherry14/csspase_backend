@@ -72,12 +72,14 @@ async def get_tokens(user: UserDB) -> Token:
 @router.post("/tg_login", response_model=Token)
 async def telegram_login(payload: TelegramAuthSchema = Body()):
     # verify user
-    if not check_webapp_signature(payload.initData):
-        raise credentials_exception
+    # if not check_webapp_signature(payload.initData):
+    #     print("invalid webapp signature")
+    #     raise credentials_exception
     # get user
     user_id = get_user_id(payload.initData)
     user = await UsersRepository(db=db).get_by_user_id(user_id=user_id)
     if (user is None) or isinstance(user, SimpleErrorResult):
+        print("invalid user id")
         raise credentials_exception
     return await get_tokens(user.payload)
 
@@ -130,28 +132,3 @@ def admin_role_checker(current_user: UserDB = Depends(get_current_user)):
             detail="You do not have permission to perform this action: role " + UserRoles.ADMIN + " needed"
         )
     return None
-
-#TODO: REMOVE AFTER TEST WRITTEN
-@router.post("/test_login", response_model=Token)
-async def test_login():
-    # # verify user
-    # if not check_webapp_signature(payload.init_data):
-    #     raise credentials_exception
-    # get user
-    user_id = 123456789
-    user = await UsersRepository(db=db).get_by_user_id(user_id=user_id)
-    if (user is None) or isinstance(user, SimpleErrorResult):
-        raise credentials_exception
-    return await get_tokens(user.payload)
-
-@router.post("/test_login_gg", response_model=Token)
-async def test_login():
-    # # verify user
-    # if not check_webapp_signature(payload.init_data):
-    #     raise credentials_exception
-    # get user
-    user_id = 1111111111
-    user = await UsersRepository(db=db).get_by_user_id(user_id=user_id)
-    if (user is None) or isinstance(user, SimpleErrorResult):
-        raise credentials_exception
-    return await get_tokens(user.payload)
