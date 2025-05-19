@@ -1,15 +1,19 @@
 # CS Space backend
 ## Provide credentials
-The credentials for the database connection
+The credentials for the database connection and some other secrets
 must be specified in the file `.env`.
 
 Example of minimal configuration:
 ```
 MONGODB_URL=mongodb://mongo:27017
 MONGODB_NAME=test
+TELEGRAM_TOKEN=<your-bot-token>
+SECRET_KEY=<secret-key>
 ```
 
 Any other private environment variables can be configured in the same way.
+
+Optional: `ORIGIN=<your-site>` for CORS settings
 
 ## Docker container
 
@@ -62,4 +66,9 @@ Scripts for db filling wasn't added to Github.
 But if the scripts are loaded later, you can call them with the command:
 ```#shell
 docker-compose exec backend python <path-to-script>
+```
+
+if it is not working, try 
+```#shell
+docker-compose exec backend python sh -c "PYTHONPATH=/app python /app/<path-to-script>"
 ```

@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     MONGODB_URL: str
     MONGODB_NAME: str
     SECRET_KEY: str
-    ORIGIN: str
+    ORIGIN: str = ""
     TELEGRAM_TOKEN: str
 
     model_config = {
