@@ -5,12 +5,12 @@ from datetime import datetime, timedelta, timezone
 
 from passlib.context import CryptContext
 
+from src.config import settings
 from src.database.database import db
 from src.database.models.auth.refresh_token import RefreshTokenDB
 from src.database.repositories.auth.refresh_token_repository import RefreshTokensRepository
 
 # Секретный ключ для подписи JWT
-SECRET_KEY: str = os.getenv("SECRET_KEY", "secret-key-for-dev")  # На практике используйте сложный ключ
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 30
@@ -24,12 +24,12 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     else:
         expire = datetime.now(tz=timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 def decode_token(token: str) -> dict | None:
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         return payload
     except JWTError as e:
         print(e)
@@ -40,7 +40,7 @@ async def create_refresh_token(data: dict):
     user_id = to_encode.get("sub")
     expire = datetime.now(tz=timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire, "type": "refresh"})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     await save_refresh_token(user_id=user_id, refresh_token=encoded_jwt, expire=expire)
     return encoded_jwt
 
