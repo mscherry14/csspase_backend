@@ -70,5 +70,5 @@ docker-compose exec backend python <path-to-script>
 
 if it is not working, try 
 ```#shell
-docker-compose exec backend python sh -c "PYTHONPATH=/app python /app/<path-to-script>"
+docker-compose exec backend sh -c "PYTHONPATH=/app python /app/<path-to-script>"
 ```
