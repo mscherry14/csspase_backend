@@ -1,4 +1,5 @@
 from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorClientSession
+from datetime import datetime
 
 from src.utils.simple_result import SimpleResult, SimpleErrorResult, SimpleOkResult
 from ..async_base_repository import AsyncRepository
@@ -15,5 +16,14 @@ class RefreshTokensRepository(AsyncRepository[RefreshTokenDB]):
             if not doc:
                 return SimpleErrorResult(f"Document with id={user_id} not found")
             return SimpleOkResult(payload=self._model(**doc))
+        except Exception as e:
+            return SimpleErrorResult(str(e))
+
+    async def delete_all(self, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[bool]:
+        try:
+            result = await self.collection().delete_many(filter={}, session=session)
+            if result.deleted_count:
+                return SimpleOkResult(payload=True)
+            return SimpleErrorResult(f"No documents found")
         except Exception as e:
             return SimpleErrorResult(str(e))
