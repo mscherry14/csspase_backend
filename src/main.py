@@ -7,6 +7,9 @@ from src.api.teacher import router as teacher_router
 from src.api.admin import router as admin_router
 from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi.responses import StreamingResponse
+import httpx
+
 from src.config import settings
 
 app = FastAPI()
@@ -25,3 +28,14 @@ app.include_router(teacher_router)
 @app.get("/")
 async def read_root():
     return JSONResponse(status_code=200,content={})
+@app.get("/proxy-image")
+async def proxy_image(url: str):
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url)
+            return StreamingResponse(
+                response.iter_bytes(),
+                media_type=response.headers.get("content-type"),
+            )
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to fetch image")
