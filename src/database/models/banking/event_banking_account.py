@@ -15,6 +15,7 @@ class EventBankingAccountDB(BaseModel):
     init_balance: int
     event: str
     transactions: List[TransactionDB] = Field(default_factory=list)
+    deadline: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -22,7 +23,8 @@ class EventBankingAccountDB(BaseModel):
     def parse_dates(cls, values):
         v_1 = parse_date('created_at', values=values)
         v_2 = parse_date('updated_at', values=v_1)
-        return v_2
+        v_3 = parse_date('deadline', values=v_2)
+        return v_3
 
     model_config = ConfigDict(
         populate_by_name=True,

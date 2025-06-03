@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import List
 
 from motor.motor_asyncio import AsyncIOMotorClientSession
@@ -51,7 +52,7 @@ class TeacherEventService:
             raise EventServiceException("no user with such mail found")
         return res.payload
 
-    # TODO: implement
+
     async def _extend_event(self, event: EventModel,
                             session: AsyncIOMotorClientSession | None = None) -> ExtendedEventModel:
         res = await EventBankingAccountsRepository(db=self.db).get_account_by_event_id(event_id=event.eventId,
@@ -60,7 +61,7 @@ class TeacherEventService:
         if isinstance(res, SimpleErrorResult):
             raise EventServiceException("event banking account error")
         return ExtendedEventModel(**event.model_dump(), init_balance=res.payload.init_balance,
-                                  balance=res.payload.balance, bankAccountId=res.payload.accountId)
+                                  balance=res.payload.balance, bankAccountId=res.payload.accountId, bankAccountDeadline=res.payload.deadline)
 
     async def get_all_hosted_events(self, user_id: int) -> List[ExtendedEventModel]:
         person = await self._get_user_from_tg_id(user_id)
@@ -119,6 +120,8 @@ class TeacherEventService:
                     # step 1 event checking
                     # step 2 sender checking
                     ext_event = await self.get_one_hosted_event(user_id=user_id, event_id=event_id, session=session)
+                    if ext_event.bankAccountDeadline < datetime.now(tz=timezone.utc):
+                        raise EventServiceException('permission denied: event accrual deadline')
                     # step 3 receiver checking
                     participants = await self.get_event_participants(event_id=event_id, user_id=user_id, session=session)
                     receiver = None

@@ -16,8 +16,7 @@ from src.database.database import db
 from src.service.shop_service import ShopService
 from src.utils.simple_result import SimpleOkResult
 
-router = APIRouter(prefix="/admin")#, dependencies = [Depends(admin_role_checker)])
-
+router = APIRouter(prefix="/admin", dependencies = [Depends(admin_role_checker)])
 
 router.add_api_route("/products", get_products, methods=["GET"])
 router.add_api_route("/products/{product_id}", get_one_product, methods=["GET"])

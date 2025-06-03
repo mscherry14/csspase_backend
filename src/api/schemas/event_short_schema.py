@@ -19,11 +19,13 @@ class EventShortSchema(BaseModel):
     registrationLink: Optional[str] = None
     balance: int
     init_balance: int
+    bankAccountDeadline: Optional[datetime] = None
 
     @model_validator(mode='before')
     def parse_dates(cls, values):
         v_1 = parse_date('registration_deadline', values=values)
-        return v_1
+        v_2 = parse_date('bankAccountDeadline', values=values)
+        return v_2
 
 
     model_config = ConfigDict(
