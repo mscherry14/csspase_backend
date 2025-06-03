@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
 
 from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorClientSession
 
@@ -88,26 +88,28 @@ class OrdersService:
             return SimpleErrorResult(message=result.message)
         return SimpleOkResult(payload=order)
 
-    async def order_set_cancelled(self, order_id: str, session: AsyncIOMotorClientSession | None = None) -> SimpleResult[OrderDB]:
-        """
-        обязательный цикл заказа: мы его создаем, потом платим, потом добавляем оплату
-        или отменяем по причине неоплаты
-        привязываем исключительно успешные оплаты именно этого заказа!!
-        здесь мы проверяем, что заказ есть и у него статус created, тогда добавляем оплату
-        если статус неправильный или заказа нет, возвращаем ошибку/исключение??
-        что возвращаем, надо поменять под нужды buying service
-        """
+    async def order_set_status(self, order_id: str, status: OrderStatus, session: AsyncIOMotorClientSession | None = None) -> OrderDB:
         res = await OrdersRepository(self.db).order_by_order_id(order_id=order_id, session=session)
         if isinstance(res, SimpleErrorResult):
-            return SimpleErrorResult(message=res.message)
+            raise Exception(res.message)
 
         order = res.payload
         order.updated_at = datetime.now(tz=timezone.utc)
-        order.status = OrderStatus.canceled
+        order.orderStatus = status
         result = await OrdersRepository(self.db).update_one(obj=order, session=session)
         if isinstance(result, SimpleErrorResult):
-            return SimpleErrorResult(message=result.message)
-        return SimpleOkResult(payload=order)
+            raise Exception(result.message)
+        return order
 
     # здесь могло бы быть "достань инфо о продукте по productId, но у нас нет инфо о продукте
     # и какие-то еще админовские круды
+    async def admin_get_orders(self, user_id: Optional[int] = None, status: Optional[OrderStatus] = None, session: AsyncIOMotorClientSession | None = None) -> List[OrderDB]:
+        filters = dict()
+        if user_id is not None:
+            filters["recipientId"] = user_id
+        if status is not None:
+            filters["orderStatus"] = status
+        res = await OrdersRepository(db=self.db).find_all(filter_options=filters, session=session)
+        if isinstance(res, SimpleErrorResult):
+            raise Exception(res.message)
+        return res.payload

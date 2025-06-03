@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.auth import get_current_user_tg_id, user_role_checker
 from src.api.schemas.balance_schema import BalanceSchema
-from src.api.schemas.order_schema import OrderSchema
-from src.api.schemas.product_schema import ProductSchema
+from src.api.schemas.shop.order_schema import OrderSchema
+from src.api.schemas.shop.product_schema import ProductSchema
 from src.api.schemas.transaction_schema import TransactionSchema
 from src.database.models import UserRoles
 from src.service.orders_service import OrdersService

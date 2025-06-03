@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 from starlette.responses import JSONResponse
 
@@ -12,7 +14,16 @@ import httpx
 
 from src.config import settings
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Старт: создаём клиент
+    app.state.httpx_client = httpx.AsyncClient(timeout=10.0)
+    yield
+    # Завершение: закрываем клиент
+    await app.state.httpx_client.aclose()
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware, # type: ignore
@@ -24,18 +35,18 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(teacher_router)
-# app.include_router(admin_router)
+app.include_router(admin_router)
+
 @app.get("/")
 async def read_root():
     return JSONResponse(status_code=200,content={})
 @app.get("/proxy-image")
 async def proxy_image(url: str):
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url)
-            return StreamingResponse(
-                response.iter_bytes(),
-                media_type=response.headers.get("content-type"),
-            )
+        response = await app.state.client.get(url, timeout=10.0)
+        return StreamingResponse(
+            response.iter_bytes(),
+            media_type=response.headers.get("content-type"),
+        )
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to fetch image")

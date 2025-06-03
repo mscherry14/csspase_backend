@@ -61,9 +61,6 @@ class AsyncRepository(Generic[ModelType], ABC):
 
     async def update_one(self, obj: ModelType, session: AsyncIOMotorClientSession | None = None, upsert: bool = False) -> SimpleResult[bool]:
         try:
-            # mock = await self.find_all(session=session)
-            # print(mock)
-            # print(obj.id)
             obj_id = ObjectId(obj.id)
             new_obj = obj.model_copy(update={"_id": None})
             data = new_obj.model_dump(by_alias=True, exclude_none=True)
