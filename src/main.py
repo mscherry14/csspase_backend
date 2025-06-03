@@ -24,7 +24,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(teacher_router)
-# app.include_router(admin_router)
+app.include_router(admin_router)
 @app.get("/")
 async def read_root():
     return JSONResponse(status_code=200,content={})
