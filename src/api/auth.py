@@ -110,6 +110,7 @@ async def get_current_user_tg_id(current_user: UserDB = Depends(get_current_user
 async def get_my_roles(current_user: UserDB = Depends(get_current_user)):
     return current_user.roles
 
+
 def user_role_checker(current_user: UserDB = Depends(get_current_user)):
     if UserRoles.USER not in current_user.roles:
         raise HTTPException(
@@ -118,6 +119,7 @@ def user_role_checker(current_user: UserDB = Depends(get_current_user)):
         )
     return None
 
+
 def teacher_role_checker(current_user: UserDB = Depends(get_current_user)):
     if UserRoles.TEACHER not in current_user.roles:
         raise HTTPException(
@@ -125,6 +127,8 @@ def teacher_role_checker(current_user: UserDB = Depends(get_current_user)):
             detail="You do not have permission to perform this action: role " + UserRoles.TEACHER + " needed"
         )
     return None
+
+
 def admin_role_checker(current_user: UserDB = Depends(get_current_user)):
     if UserRoles.ADMIN not in current_user.roles:
         raise HTTPException(
@@ -132,3 +136,17 @@ def admin_role_checker(current_user: UserDB = Depends(get_current_user)):
             detail="You do not have permission to perform this action: role " + UserRoles.ADMIN + " needed"
         )
     return None
+
+
+@router.post("/test/{user_id}", response_model=Token)
+async def telegram_login(user_id: str):
+    res = await UsersRepository(db=db).find_all()
+    if isinstance(res, SimpleErrorResult):
+        print(res.message)
+    else:
+        print(res.payload)
+    user = await UsersRepository(db=db).get_by_user_id(user_id=int(user_id))
+    if (user is None) or isinstance(user, SimpleErrorResult):
+        print("invalid user id: " + user.message)
+        raise credentials_exception
+    return await get_tokens(user.payload)

@@ -79,7 +79,7 @@ class TeacherEventService:
         raw_event = await EventService(db=self.db).get_event_by_id(event_id=event_id, session=session)
         if person.email not in raw_event.speakers:
             raise EventServiceException(
-                "access denied: you are not allowed to get event extended info if you are not speaker")
+                "access denied: you are not allowed to get event extended info if you are not speaker: " + str(person.email) + " " + str(raw_event.speakers))
         event = await self._extend_event(raw_event, session=session)
         return event
 
@@ -120,7 +120,7 @@ class TeacherEventService:
                     # step 1 event checking
                     # step 2 sender checking
                     ext_event = await self.get_one_hosted_event(user_id=user_id, event_id=event_id, session=session)
-                    if ext_event.bankAccountDeadline < datetime.now(tz=timezone.utc):
+                    if ext_event.bankAccountDeadline is not None and ext_event.bankAccountDeadline < datetime.now(tz=timezone.utc):
                         raise EventServiceException('permission denied: event accrual deadline')
                     # step 3 receiver checking
                     participants = await self.get_event_participants(event_id=event_id, user_id=user_id, session=session)

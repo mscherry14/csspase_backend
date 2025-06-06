@@ -1,16 +1,24 @@
 from datetime import datetime
-from typing import Optional
+from enum import Enum
+from typing import Optional, Any
 
 from pydantic import BaseModel, Field, model_validator, ConfigDict
 
 from src.utils.validators import parse_date
-from ..utils import PyObjectId
+from .utils import PyObjectId
 
 
-class RefreshTokenDB(BaseModel):
+class IdempotencyStatus(str, Enum):
+    PENDING = "pending"
+    DONE = "done"
+    FAILED = "failed"
+
+class IdempotencyKeyDB(BaseModel):
     id: Optional[PyObjectId] = Field(default=None, alias="_id")
-    user_id: int = Field(..., alias="userId")
-    token_hash: str = Field(..., alias="tokenHash")
+    key: str
+    status: IdempotencyStatus
+    status_code: int = Field(..., alias="statusCode")
+    response: Any
     expires_at: datetime
 
     @model_validator(mode='before')

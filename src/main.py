@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 from starlette.responses import JSONResponse
 
@@ -11,8 +13,17 @@ from fastapi.responses import StreamingResponse
 import httpx
 
 from src.config import settings
+from src.database.database import db
+from src.database.repositories.idempotency_key_repository import IdempotencyKeyRepository
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await IdempotencyKeyRepository(db=db).setup_index()
+    yield
+    db.close()
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware, # type: ignore
@@ -25,6 +36,8 @@ app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(teacher_router)
 app.include_router(admin_router)
+
+
 @app.get("/")
 async def read_root():
     return JSONResponse(status_code=200,content={})

@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from src.api.auth import get_current_user_tg_id, teacher_role_checker
 from src.api.schemas.event_full_schema import EventFullSchema
@@ -11,6 +11,7 @@ from src.api.schemas.participant_schema import ParticipantSchema
 from src.database.database import db
 from src.database.models import UserRoles
 from src.database.repositories.users_repository import UsersRepository
+from src.service.idempotency_key_service import idempotent
 from src.service.teacher_event_service import TeacherEventService
 from src.utils.simple_result import SimpleErrorResult, SimpleOkResult
 
@@ -29,6 +30,7 @@ async def get_events(tg_id: int = Depends(get_current_user_tg_id)):
         return list(map(EventShortSchema.from_extended_event, res))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/events/{event_id}", response_model=EventFullSchema)
 async def get_event(event_id: str, tg_id: int = Depends(get_current_user_tg_id)):
@@ -51,7 +53,8 @@ async def get_participant(event_id: str, tg_id: int = Depends(get_current_user_t
 
 #maybe /events/{event_id}/accrue,
 @router.post("/events/{event_id}/participants/{participant_id}", response_model=EventToUserMoneyTransferSchema)
-async def reward_participant(event_id: str, participant_id: int, req_body: EventToUserPaymentRequestSchema, tg_id: int = Depends(get_current_user_tg_id)):
+@idempotent
+async def reward_participant(event_id: str, participant_id: int, request: Request, req_body: EventToUserPaymentRequestSchema, tg_id: int = Depends(get_current_user_tg_id)):
     """Начислить баллы участнику."""
     try:
         res = await TeacherEventService(db=db).send_token_to_participant(user_id=tg_id, event_id=event_id, amount=req_body.amount, receiver_id=participant_id)

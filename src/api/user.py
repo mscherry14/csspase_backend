@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.api.auth import get_current_user_tg_id, user_role_checker
 from src.api.schemas.balance_schema import BalanceSchema
@@ -8,6 +8,7 @@ from src.api.schemas.shop.order_schema import OrderSchema
 from src.api.schemas.shop.product_schema import ProductSchema
 from src.api.schemas.transaction_schema import TransactionSchema
 from src.database.models import UserRoles
+from src.service.idempotency_key_service import idempotent
 from src.service.orders_service import OrdersService
 from src.service.shop_service import ShopService
 from src.service.wallet_service import WalletService
@@ -59,12 +60,15 @@ async def get_one_product(product_id: str):
     return ProductSchema.model_validate(res.payload.model_dump())
 
 
+
 @router.post("/orders/{product_id}", response_model=OrderSchema)
-async def buy_product(product_id: str, tg_id: int = Depends(get_current_user_tg_id)):
+@idempotent
+async def buy_product(product_id: str, request: Request, tg_id: int = Depends(get_current_user_tg_id)):
     res = await ShopService(db=db).buy_product(user_id=tg_id, product_id=product_id)
     if isinstance(res, SimpleErrorResult):
         raise HTTPException(status_code=402, detail=res.message)
     return OrderSchema.model_validate(res.payload.model_dump())
+
 
 @router.get("/orders", response_model=List[OrderSchema])
 async def get_orders(tg_id: int = Depends(get_current_user_tg_id)):

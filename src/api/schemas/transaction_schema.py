@@ -9,7 +9,7 @@ from src.database.repositories.banking.event_banking_accounts_repository import 
 from src.database.repositories.banking.event_to_user_payments_repository import EventToUserPaymentsRepository
 from src.database.repositories.banking.shop_payments_repository import ShopPaymentsRepository
 from src.database.repositories.shop.orders_repository import OrdersRepository
-from src.service.orders_service import OrdersService
+from src.service.event_service import EventService
 from src.utils.simple_result import SimpleErrorResult
 from src.utils.validators import parse_date
 
@@ -37,15 +37,16 @@ class TransactionSchema(BaseModel):
             res = await ShopPaymentsRepository(db=db).get_one_by_id(object_id=PyObjectId(trans.operation_id))
             if isinstance(res, SimpleErrorResult):
                 raise Exception("transaction not found")
-            # order = await OrdersRepository(db=db).order_by_order_id(res.payload.orderId)
-            # if isinstance(order, SimpleErrorResult):
-            #     raise Exception("order for transaction not found")
-            headline = "Покупка в магазине"
+            order = await OrdersRepository(db=db).order_by_order_id(res.payload.orderId)
+            if isinstance(order, SimpleErrorResult):
+                raise Exception("order for transaction not found")
+            headline = "Покупка в магазине: " + order.payload.title
         else:
-            # event_acc = await EventBankingAccountsRepository(db=db).get_account_by_account_id(res.payload.fromEventBankingAccount)
-            # if isinstance(event_acc, SimpleErrorResult):
-            #     raise Exception("event for transaction not found")
-            headline = "Начисление за мероприятие"
+            event_acc = await EventBankingAccountsRepository(db=db).get_account_by_account_id(res.payload.fromEventBankingAccount)
+            if isinstance(event_acc, SimpleErrorResult):
+                raise Exception("event for transaction not found")
+            event = await EventService(db=db).get_event_by_id(event_id=event_acc.payload.event)
+            headline = "Начисление за мероприятие: " + event.title
 
 
         return TransactionSchema(

@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.auth import admin_role_checker
 from src.api.schemas.shop.admin_order_schema import AdminOrderSchema
-from src.api.schemas.shop.order_schema import OrderSchema
 from src.api.schemas.shop.product_patch_schema import ProductPatchSchema
 from src.api.schemas.shop.product_put_schema import ProductPutSchema
 from src.api.schemas.shop.product_schema import ProductSchema
@@ -34,6 +33,7 @@ async def create_product(product: ProductSchema):
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e)) #TODO: norm exception
 
+
 @router.put("/products/{product_id}", response_model=ProductSchema)
 async def update_product(product_id: str, product: ProductPutSchema):
     """Обновить товар (перезаписать)"""
@@ -46,6 +46,7 @@ async def update_product(product_id: str, product: ProductPutSchema):
         return ProductSchema.model_validate(res.model_dump())
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))  # TODO: norm exception
+
 
 @router.patch("/products/{product_id}", response_model=ProductSchema)
 async def patch_product(product_id: str, product: ProductPatchSchema):
@@ -71,6 +72,7 @@ async def delete_product(product_id: str):
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+
 @router.get("/orders", response_model=list[AdminOrderSchema])
 async def get_orders(user: Optional[str] = None, status: Optional[str] = None):
     """Все заказы (админ)/с фильтром по пользователю"""
@@ -83,6 +85,7 @@ async def get_orders(user: Optional[str] = None, status: Optional[str] = None):
         return res_list[::-1]
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
+
 
 @router.get("/orders/{order_id}", response_model=list[AdminOrderSchema])
 async def get_orders(order_id: str, status: Optional[str] = None):
@@ -97,6 +100,7 @@ async def get_orders(order_id: str, status: Optional[str] = None):
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+
 @router.patch("/orders/{order_id}/confirm")
 async def confirm_order_status(order_id: str):
     """Изменить статус заказа на "подтвержден\""""
@@ -107,6 +111,7 @@ async def confirm_order_status(order_id: str):
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+
 @router.patch("/orders/{order_id}/cancel")
 async def canceled_order_status(order_id: str):
     """Изменить статус заказа на "отменен\""""
@@ -116,6 +121,7 @@ async def canceled_order_status(order_id: str):
         return order
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
+
 
 @router.patch("/orders/{order_id}/complete")
 async def completed_order_status(order_id: str):

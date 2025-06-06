@@ -1,5 +1,3 @@
-import os
-
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
 
@@ -9,6 +7,7 @@ from src.config import settings
 from src.database.database import db
 from src.database.models.auth.refresh_token import RefreshTokenDB
 from src.database.repositories.auth.refresh_token_repository import RefreshTokensRepository
+from src.utils.simple_result import SimpleErrorResult
 
 # Секретный ключ для подписи JWT
 ALGORITHM = "HS256"
@@ -46,8 +45,7 @@ async def create_refresh_token(data: dict):
 
 async def save_refresh_token(user_id: int, refresh_token: str, expire: datetime | None = None):
     try:
-        #TODO: do hash =(
-        token_hash = refresh_token #pwd_context.hash(refresh_token)
+        token_hash = pwd_context.hash(refresh_token)
         # Определяем срок действия
         expires_at = expire or datetime.now(tz=timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
         # Создаем запись в базе
@@ -62,11 +60,16 @@ async def save_refresh_token(user_id: int, refresh_token: str, expire: datetime 
 
 
 async def verify_refresh_token(user_id: int, token: str) -> bool:
-    # Ищем последний неотозванный токен пользователя
-    db_token = await RefreshTokensRepository(db=db).find_one_by_user(user_id=user_id)
+    db_tokens = await RefreshTokensRepository(db=db).find_all_by_user(user_id=user_id)
 
-    if not db_token:
+    if not db_tokens or isinstance(db_tokens, SimpleErrorResult):
         return False
 
-    # Проверяем соответствие токена хэшу в базе
-    return pwd_context.verify(token, db_token.payload.token_hash)
+    for db_token in db_tokens.payload:
+        if pwd_context.verify(token, db_token.payload.token_hash):
+            await RefreshTokensRepository(db=db).delete(object_id=db_token.id)
+            return True
+        if db_token.expires_at < datetime.now(tz=timezone.utc):
+            await RefreshTokensRepository(db=db).delete(object_id=db_token.id)
+
+    return False
