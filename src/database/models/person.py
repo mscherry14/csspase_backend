@@ -1,17 +1,8 @@
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field, ConfigDict, model_validator
-from enum import Enum
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 from .utils import PyObjectId
-
-
-class PersonRole(str, Enum):
-    chief = "chief"
-    coordinator = "coordinator"
-    developer = "developer"
-    teacher = "teacher"
-    advisor = "advisor"
 
 
 class PersonDB(BaseModel):
@@ -20,7 +11,7 @@ class PersonDB(BaseModel):
     firstName: str
     lastName: str
     bio: str
-    role: PersonRole
+    role: str
     photo: str
     email: EmailStr
     priority: Optional[int | str] = None

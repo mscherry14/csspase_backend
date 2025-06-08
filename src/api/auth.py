@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from src.api.schemas.telegram_auth_schema import TelegramAuthSchema
 from src.database.database import db
-from src.database.models import UserDB, PersonRole, UserRoles
+from src.database.models import UserDB, UserRoles
 from src.database.repositories.users_repository import UsersRepository
 from src.service.auth.jwt import decode_token, create_access_token, create_refresh_token
 from fastapi.security import OAuth2PasswordBearer
@@ -72,11 +72,11 @@ async def get_tokens(user: UserDB) -> Token:
 @router.post("/tg_login", response_model=Token)
 async def telegram_login(payload: TelegramAuthSchema = Body()):
     # verify user
+    user_id = get_user_id(payload.initData)
     if not check_webapp_signature(payload.initData):
-        print("invalid webapp signature")
+        print("invalid webapp signature: ", payload.initData)
         raise credentials_exception
     # get user
-    user_id = get_user_id(payload.initData)
     user = await UsersRepository(db=db).get_by_user_id(user_id=user_id)
     if (user is None) or isinstance(user, SimpleErrorResult):
         print("invalid user id")
@@ -138,15 +138,15 @@ def admin_role_checker(current_user: UserDB = Depends(get_current_user)):
     return None
 
 
-@router.post("/test/{user_id}", response_model=Token)
-async def telegram_login(user_id: str):
-    res = await UsersRepository(db=db).find_all()
-    if isinstance(res, SimpleErrorResult):
-        print(res.message)
-    else:
-        print(res.payload)
-    user = await UsersRepository(db=db).get_by_user_id(user_id=int(user_id))
-    if (user is None) or isinstance(user, SimpleErrorResult):
-        print("invalid user id: " + user.message)
-        raise credentials_exception
-    return await get_tokens(user.payload)
+# @router.post("/test/{user_id}", response_model=Token)
+# async def telegram_login(user_id: str):
+#     res = await UsersRepository(db=db).find_all()
+#     if isinstance(res, SimpleErrorResult):
+#         print(res.message)
+#     else:
+#         print(res.payload)
+#     user = await UsersRepository(db=db).get_by_user_id(user_id=int(user_id))
+#     if (user is None) or isinstance(user, SimpleErrorResult):
+#         print("invalid user id: " + user.message)
+#         raise credentials_exception
+#     return await get_tokens(user.payload)

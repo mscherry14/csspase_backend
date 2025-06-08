@@ -1,7 +1,7 @@
 from typing import Optional
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 
-from src.database.models import PyObjectId, PersonRole
+from src.database.models import PyObjectId
 
 #TODO: refactor if needed
 class PersonModel(BaseModel):
@@ -9,7 +9,7 @@ class PersonModel(BaseModel):
     tg_id: Optional[int] = None
     firstName: str
     lastName: str
-    role: PersonRole
+    role: str
     photo: str
     email: EmailStr
 

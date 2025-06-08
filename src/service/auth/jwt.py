@@ -1,7 +1,6 @@
+import bcrypt
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
-
-from passlib.context import CryptContext
 
 from src.config import settings
 from src.database.database import db
@@ -14,7 +13,6 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
@@ -26,6 +24,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+
 def decode_token(token: str) -> dict | None:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
@@ -33,6 +32,7 @@ def decode_token(token: str) -> dict | None:
     except JWTError as e:
         print(e)
         return None
+
 
 async def create_refresh_token(data: dict):
     to_encode = data.copy()
@@ -43,9 +43,11 @@ async def create_refresh_token(data: dict):
     await save_refresh_token(user_id=user_id, refresh_token=encoded_jwt, expire=expire)
     return encoded_jwt
 
+
 async def save_refresh_token(user_id: int, refresh_token: str, expire: datetime | None = None):
     try:
-        token_hash = pwd_context.hash(refresh_token)
+        token_hash_bytes = bcrypt.hashpw(refresh_token.encode("utf-8"), bcrypt.gensalt())
+        token_hash = token_hash_bytes.decode("utf-8")
         # Определяем срок действия
         expires_at = expire or datetime.now(tz=timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
         # Создаем запись в базе
@@ -66,7 +68,10 @@ async def verify_refresh_token(user_id: int, token: str) -> bool:
         return False
 
     for db_token in db_tokens.payload:
-        if pwd_context.verify(token, db_token.payload.token_hash):
+        if bcrypt.checkpw(
+                token.encode('utf-8'),  # -> bytes
+                db_token.payload.token_hash.encode('utf-8')  # -> bytes
+        ):
             await RefreshTokensRepository(db=db).delete(object_id=db_token.id)
             return True
         if db_token.expires_at < datetime.now(tz=timezone.utc):

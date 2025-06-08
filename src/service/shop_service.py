@@ -11,7 +11,6 @@ from ..database.models.shop.order import OrderDB
 from ..database.models.shop.product import ProductDB
 from ..database.repositories.banking.shop_payments_repository import ShopPaymentsRepository
 from ..database.repositories.banking.user_banking_accounts_repository import UserBankingAccountsRepository
-from ..database.repositories.shop.orders_repository import OrdersRepository
 from ..database.repositories.shop.products_repository import ProductsRepository
 from ..database.repositories.users_repository import UsersRepository
 from ..utils.simple_result import SimpleResult, SimpleErrorResult, SimpleOkResult

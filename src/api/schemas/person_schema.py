@@ -1,10 +1,10 @@
 from src.api.schemas.user_schema import UserSchema
-from src.database.models import PersonRole, PersonDB
+from src.database.models import PersonDB
 
 
 class PersonSchema(UserSchema):
     photo: str
-    role: PersonRole
+    role: str
 
     @staticmethod
     def from_person(person: PersonDB) -> "PersonSchema":
