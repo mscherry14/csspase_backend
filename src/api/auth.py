@@ -5,6 +5,7 @@ from jose import JWTError
 from pydantic import BaseModel
 
 from src.api.schemas.telegram_auth_schema import TelegramAuthSchema
+from src.api.schemas.user_schema import UserSchema
 from src.database.database import db
 from src.database.models import UserDB, UserRoles
 from src.database.repositories.users_repository import UsersRepository
@@ -96,9 +97,9 @@ async def refresh_token(refresh: str = Depends(oauth2_scheme)):
     return await get_tokens(user)
 
 
-@router.get("/me", response_model=UserDB)
+@router.get("/me", response_model=UserSchema)
 async def get_my_user_info(current_user: UserDB = Depends(get_current_user)):
-    return current_user
+    return UserSchema.model_validate(current_user.model_dump())
 
 
 @router.get("/me/id", response_model=int)

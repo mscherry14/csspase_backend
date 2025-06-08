@@ -1,9 +1,15 @@
 FROM python:3.12-slim
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends\
     build-essential \
     gcc \
+    ca-certificates \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /usr/local/share/ca-certificates/yandex && \
+    curl -sS https://storage.yandexcloud.net/cloud-certs/CA.pem -o /usr/local/share/ca-certificates/yandex/YandexCA.pem && \
+    update-ca-certificates \
 
 WORKDIR /app
 
